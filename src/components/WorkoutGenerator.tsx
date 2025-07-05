@@ -6,18 +6,76 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
-import { Zap, Clock, Target, Sparkles } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Zap, Clock, Target, Sparkles, Waves, Dumbbell } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+
+const sportEquipment = {
+  swimming: [
+    { id: "pool", label: "Swimming Pool" },
+    { id: "kickboard", label: "Kickboard" },
+    { id: "pull-buoy", label: "Pull Buoy" },
+    { id: "fins", label: "Swim Fins" },
+    { id: "paddles", label: "Hand Paddles" },
+    { id: "snorkel", label: "Swimming Snorkel" }
+  ],
+  running: [
+    { id: "treadmill", label: "Treadmill" },
+    { id: "track", label: "Running Track" },
+    { id: "trails", label: "Trail Access" },
+    { id: "hills", label: "Hills/Inclines" },
+    { id: "resistance-bands", label: "Resistance Bands" }
+  ],
+  cycling: [
+    { id: "road-bike", label: "Road Bike" },
+    { id: "mountain-bike", label: "Mountain Bike" },
+    { id: "trainer", label: "Indoor Trainer" },
+    { id: "power-meter", label: "Power Meter" },
+    { id: "heart-rate", label: "Heart Rate Monitor" }
+  ],
+  basketball: [
+    { id: "court", label: "Basketball Court" },
+    { id: "hoop", label: "Basketball Hoop" },
+    { id: "agility-ladder", label: "Agility Ladder" },
+    { id: "cones", label: "Training Cones" },
+    { id: "plyometric-box", label: "Plyometric Box" }
+  ],
+  soccer: [
+    { id: "field", label: "Soccer Field" },
+    { id: "goals", label: "Soccer Goals" },
+    { id: "cones", label: "Training Cones" },
+    { id: "agility-ladder", label: "Agility Ladder" },
+    { id: "ball", label: "Soccer Ball" }
+  ],
+  tennis: [
+    { id: "court", label: "Tennis Court" },
+    { id: "racket", label: "Tennis Racket" },
+    { id: "ball-machine", label: "Ball Machine" },
+    { id: "agility-ladder", label: "Agility Ladder" },
+    { id: "resistance-bands", label: "Resistance Bands" }
+  ]
+}
 
 export function WorkoutGenerator() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [duration, setDuration] = useState([30])
   const [workoutType, setWorkoutType] = useState("")
+  const [sport, setSport] = useState("")
   const [fitnessLevel, setFitnessLevel] = useState("")
   const [equipment, setEquipment] = useState("")
+  const [sportEquipmentList, setSportEquipmentList] = useState<string[]>([])
   const [goals, setGoals] = useState("")
+  const [sessionType, setSessionType] = useState("")
   const [generatedWorkout, setGeneratedWorkout] = useState<any>(null)
   const { toast } = useToast()
+
+  const handleSportEquipmentChange = (equipmentId: string, checked: boolean) => {
+    if (checked) {
+      setSportEquipmentList([...sportEquipmentList, equipmentId])
+    } else {
+      setSportEquipmentList(sportEquipmentList.filter(id => id !== equipmentId))
+    }
+  }
 
   const generateWorkout = async () => {
     const apiKey = localStorage.getItem('gemini-api-key')
@@ -43,23 +101,51 @@ export function WorkoutGenerator() {
     setIsGenerating(true)
     
     try {
-      const prompt = `Generate a ${duration[0]}-minute ${workoutType} workout for a ${fitnessLevel} fitness level person. 
-      Equipment available: ${equipment || 'bodyweight only'}. 
-      Goals: ${goals || 'general fitness'}. 
+      let prompt = ""
       
-      Please provide a structured workout plan with:
-      1. Warm-up (5 minutes)
-      2. Main workout with exercises, sets, reps, and rest periods
-      3. Cool-down (5 minutes)
-      
-      Format as JSON with this structure:
-      {
-        "title": "Workout Name",
-        "duration": ${duration[0]},
-        "warmup": [...],
-        "exercises": [{"name": "", "sets": 0, "reps": "", "rest": "", "description": ""}],
-        "cooldown": [...]
-      }`
+      if (sport && sessionType) {
+        const availableEquipment = sportEquipmentList.join(", ") || "basic equipment"
+        prompt = `Generate a ${duration[0]}-minute ${sport} ${sessionType} session for a ${fitnessLevel} level athlete.
+        Available equipment: ${availableEquipment}.
+        Goals: ${goals || `improve ${sport} performance`}.
+        
+        Please provide a structured ${sessionType} plan with:
+        1. Warm-up (5-10 minutes)
+        2. Main ${sessionType} with exercises/drills, sets, reps, and rest periods
+        3. Cool-down (5-10 minutes)
+        
+        ${sessionType === 'training' ? `Focus on sport-specific skills, technique, and conditioning for ${sport}.` : 
+          `Focus on gym exercises that complement ${sport} performance, targeting relevant muscle groups and movement patterns.`}
+        
+        Format as JSON with this structure:
+        {
+          "title": "${sport} ${sessionType} Session",
+          "duration": ${duration[0]},
+          "sport": "${sport}",
+          "type": "${sessionType}",
+          "warmup": [...],
+          "exercises": [{"name": "", "sets": 0, "reps": "", "rest": "", "description": "", "sportSpecific": true/false}],
+          "cooldown": [...]
+        }`
+      } else {
+        prompt = `Generate a ${duration[0]}-minute ${workoutType} workout for a ${fitnessLevel} fitness level person. 
+        Equipment available: ${equipment || 'bodyweight only'}. 
+        Goals: ${goals || 'general fitness'}. 
+        
+        Please provide a structured workout plan with:
+        1. Warm-up (5 minutes)
+        2. Main workout with exercises, sets, reps, and rest periods
+        3. Cool-down (5 minutes)
+        
+        Format as JSON with this structure:
+        {
+          "title": "Workout Name",
+          "duration": ${duration[0]},
+          "warmup": [...],
+          "exercises": [{"name": "", "sets": 0, "reps": "", "rest": "", "description": ""}],
+          "cooldown": [...]
+        }`
+      }
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
         method: 'POST',
@@ -79,7 +165,6 @@ export function WorkoutGenerator() {
       
       if (data.candidates && data.candidates[0]) {
         const workoutText = data.candidates[0].content.parts[0].text
-        // Try to extract JSON from the response
         const jsonMatch = workoutText.match(/\{[\s\S]*\}/)
         
         if (jsonMatch) {
@@ -90,17 +175,20 @@ export function WorkoutGenerator() {
             description: "Your personalized workout is ready.",
           })
         } else {
-          // Fallback: create a simple workout structure
+          // Fallback workout
+          const fallbackTitle = sport ? `${sport} ${sessionType} Session` : `${workoutType} Workout`
           setGeneratedWorkout({
-            title: `${workoutType} Workout`,
+            title: fallbackTitle,
             duration: duration[0],
-            warmup: ["Light jogging", "Dynamic stretching", "Arm circles"],
+            sport: sport,
+            type: sessionType,
+            warmup: ["Dynamic warm-up", "Joint mobility", "Light movement preparation"],
             exercises: [
-              { name: "Push-ups", sets: 3, reps: "8-12", rest: "60s", description: "Standard push-ups" },
-              { name: "Squats", sets: 3, reps: "12-15", rest: "60s", description: "Bodyweight squats" },
-              { name: "Plank", sets: 3, reps: "30s", rest: "45s", description: "Hold plank position" }
+              { name: "Main Exercise 1", sets: 3, reps: "8-12", rest: "60s", description: "Primary movement pattern", sportSpecific: !!sport },
+              { name: "Main Exercise 2", sets: 3, reps: "10-15", rest: "60s", description: "Secondary movement", sportSpecific: !!sport },
+              { name: "Main Exercise 3", sets: 3, reps: "30s", rest: "45s", description: "Conditioning element", sportSpecific: !!sport }
             ],
-            cooldown: ["Static stretching", "Deep breathing", "Relaxation"]
+            cooldown: ["Static stretching", "Deep breathing", "Recovery"]
           })
         }
       }
@@ -123,61 +211,133 @@ export function WorkoutGenerator() {
           <Sparkles className="h-8 w-8 text-white" />
         </div>
         <h2 className="text-2xl font-bold mb-2">AI Workout Generator</h2>
-        <p className="text-muted-foreground">Let AI create your perfect workout</p>
+        <p className="text-muted-foreground">Sport-specific training & gym sessions</p>
       </div>
 
       <Card className="glass border-0">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
-            Workout Preferences
+            Training Focus
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Workout Type</Label>
-              <Select value={workoutType} onValueChange={setWorkoutType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="strength">Strength Training</SelectItem>
-                  <SelectItem value="cardio">Cardio</SelectItem>
-                  <SelectItem value="hiit">HIIT</SelectItem>
-                  <SelectItem value="yoga">Yoga</SelectItem>
-                  <SelectItem value="full-body">Full Body</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Fitness Level</Label>
-              <Select value={fitnessLevel} onValueChange={setFitnessLevel}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select level" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="beginner">Beginner</SelectItem>
-                  <SelectItem value="intermediate">Intermediate</SelectItem>
-                  <SelectItem value="advanced">Advanced</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
           <div className="space-y-2">
-            <Label>Equipment Available</Label>
-            <Select value={equipment} onValueChange={setEquipment}>
+            <Label>Training Type</Label>
+            <Select value={workoutType} onValueChange={setWorkoutType}>
               <SelectTrigger>
-                <SelectValue placeholder="Select equipment" />
+                <SelectValue placeholder="Select training type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Bodyweight Only</SelectItem>
-                <SelectItem value="dumbbells">Dumbbells</SelectItem>
-                <SelectItem value="resistance-bands">Resistance Bands</SelectItem>
-                <SelectItem value="full-gym">Full Gym Access</SelectItem>
-                <SelectItem value="home-gym">Home Gym Setup</SelectItem>
+                <SelectItem value="general">General Fitness</SelectItem>
+                <SelectItem value="sport-specific">Sport-Specific Training</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {workoutType === "sport-specific" && (
+            <>
+              <div className="space-y-2">
+                <Label>Sport</Label>
+                <Select value={sport} onValueChange={(value) => {
+                  setSport(value)
+                  setSportEquipmentList([])
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your sport" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="swimming">Swimming</SelectItem>
+                    <SelectItem value="running">Running</SelectItem>
+                    <SelectItem value="cycling">Cycling</SelectItem>
+                    <SelectItem value="basketball">Basketball</SelectItem>
+                    <SelectItem value="soccer">Soccer</SelectItem>
+                    <SelectItem value="tennis">Tennis</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {sport && (
+                <div className="space-y-2">
+                  <Label>Session Type</Label>
+                  <Select value={sessionType} onValueChange={setSessionType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select session type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="training">Sport Training Session</SelectItem>
+                      <SelectItem value="supplement">Supplementary Gym Session</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {sport && sportEquipment[sport as keyof typeof sportEquipment] && (
+                <div className="space-y-2">
+                  <Label>Available Equipment</Label>
+                  <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                    {sportEquipment[sport as keyof typeof sportEquipment].map((item) => (
+                      <div key={item.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={item.id}
+                          checked={sportEquipmentList.includes(item.id)}
+                          onCheckedChange={(checked) => handleSportEquipmentChange(item.id, checked as boolean)}
+                        />
+                        <Label htmlFor={item.id} className="text-sm">{item.label}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {workoutType === "general" && (
+            <>
+              <div className="space-y-2">
+                <Label>Workout Type</Label>
+                <Select value={equipment} onValueChange={setEquipment}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select workout type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="strength">Strength Training</SelectItem>
+                    <SelectItem value="cardio">Cardio</SelectItem>
+                    <SelectItem value="hiit">HIIT</SelectItem>
+                    <SelectItem value="yoga">Yoga</SelectItem>
+                    <SelectItem value="full-body">Full Body</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Equipment Available</Label>
+                <Select value={equipment} onValueChange={setEquipment}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select equipment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Bodyweight Only</SelectItem>
+                    <SelectItem value="dumbbells">Dumbbells</SelectItem>
+                    <SelectItem value="resistance-bands">Resistance Bands</SelectItem>
+                    <SelectItem value="full-gym">Full Gym Access</SelectItem>
+                    <SelectItem value="home-gym">Home Gym Setup</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
+          <div className="space-y-2">
+            <Label>Fitness Level</Label>
+            <Select value={fitnessLevel} onValueChange={setFitnessLevel}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="beginner">Beginner</SelectItem>
+                <SelectItem value="intermediate">Intermediate</SelectItem>
+                <SelectItem value="advanced">Advanced</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -187,21 +347,21 @@ export function WorkoutGenerator() {
             <Slider
               value={duration}
               onValueChange={setDuration}
-              max={90}
+              max={120}
               min={15}
               step={5}
               className="w-full"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>15 min</span>
-              <span>90 min</span>
+              <span>120 min</span>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label>Specific Goals (Optional)</Label>
             <Textarea
-              placeholder="e.g., lose weight, build muscle, improve endurance..."
+              placeholder={sport ? `e.g., improve ${sport} technique, build endurance...` : "e.g., lose weight, build muscle, improve endurance..."}
               value={goals}
               onChange={(e) => setGoals(e.target.value)}
               className="min-h-[80px]"
@@ -221,7 +381,7 @@ export function WorkoutGenerator() {
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                Generate Workout
+                Generate {sport ? `${sport} ` : ''}Workout
               </>
             )}
           </Button>
@@ -232,16 +392,22 @@ export function WorkoutGenerator() {
         <Card className="glass border-0">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
+              {generatedWorkout.sport ? <Waves className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
               {generatedWorkout.title}
             </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Duration: {generatedWorkout.duration} minutes
-            </p>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <span>Duration: {generatedWorkout.duration} minutes</span>
+              {generatedWorkout.sport && (
+                <span className="text-pulse-blue">Sport: {generatedWorkout.sport}</span>
+              )}
+              {generatedWorkout.type && (
+                <span className="text-pulse-green">Type: {generatedWorkout.type}</span>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h4 className="font-semibold text-pulse-green mb-2">Warm-up (5 min)</h4>
+              <h4 className="font-semibold text-pulse-green mb-2">Warm-up</h4>
               <ul className="space-y-1 text-sm">
                 {generatedWorkout.warmup?.map((exercise: string, index: number) => (
                   <li key={index} className="flex items-center gap-2">
@@ -253,12 +419,21 @@ export function WorkoutGenerator() {
             </div>
 
             <div>
-              <h4 className="font-semibold text-pulse-blue mb-2">Main Workout</h4>
+              <h4 className="font-semibold text-pulse-blue mb-2">
+                {generatedWorkout.type === 'supplement' ? 'Gym Exercises' : 'Main Training'}
+              </h4>
               <div className="space-y-3">
                 {generatedWorkout.exercises?.map((exercise: any, index: number) => (
                   <div key={index} className="p-3 rounded-lg bg-muted/30">
                     <div className="flex justify-between items-start mb-1">
-                      <h5 className="font-medium">{exercise.name}</h5>
+                      <div className="flex items-center gap-2">
+                        <h5 className="font-medium">{exercise.name}</h5>
+                        {exercise.sportSpecific && (
+                          <span className="text-xs bg-pulse-blue/20 text-pulse-blue px-2 py-1 rounded">
+                            Sport-Specific
+                          </span>
+                        )}
+                      </div>
                       <span className="text-xs text-muted-foreground">
                         {exercise.sets} sets × {exercise.reps}
                       </span>
@@ -271,7 +446,7 @@ export function WorkoutGenerator() {
             </div>
 
             <div>
-              <h4 className="font-semibold text-pulse-purple mb-2">Cool-down (5 min)</h4>
+              <h4 className="font-semibold text-pulse-purple mb-2">Cool-down</h4>
               <ul className="space-y-1 text-sm">
                 {generatedWorkout.cooldown?.map((exercise: string, index: number) => (
                   <li key={index} className="flex items-center gap-2">
@@ -283,7 +458,8 @@ export function WorkoutGenerator() {
             </div>
 
             <Button className="w-full" variant="outline">
-              Start Workout
+              <Dumbbell className="mr-2 h-4 w-4" />
+              Start {generatedWorkout.sport ? `${generatedWorkout.sport} ` : ''}Session
             </Button>
           </CardContent>
         </Card>
