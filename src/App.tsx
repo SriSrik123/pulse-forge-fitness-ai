@@ -5,17 +5,35 @@ import { Toaster as Sonner } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ThemeProvider } from "./components/ThemeProvider"
+import { AuthProvider, useAuth } from "./hooks/useAuth"
 import { Navigation } from "./components/Navigation"
 import { Dashboard } from "./components/Dashboard"
 import { WorkoutGenerator } from "./components/WorkoutGenerator"
 import { Workouts } from "./components/Workouts"
 import { Profile } from "./components/Profile"
 import { Settings } from "./components/Settings"
+import { Auth } from "./components/Auth"
 
 const queryClient = new QueryClient()
 
-const App = () => {
+function AppContent() {
+  const { user, loading } = useAuth()
   const [activeTab, setActiveTab] = useState('dashboard')
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-background/80">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pulse-blue mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Auth />
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -35,19 +53,26 @@ const App = () => {
   }
 
   return (
+    <div className="min-h-screen bg-gradient-to-br from-background to-background/80">
+      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+      
+      <main className="pt-20 pb-20 px-4 max-w-md mx-auto">
+        {renderContent()}
+      </main>
+    </div>
+  )
+}
+
+const App = () => {
+  return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" storageKey="pulsetrack-ui-theme">
         <TooltipProvider>
-          <div className="min-h-screen bg-gradient-to-br from-background to-background/80">
-            <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-            
-            <main className="pt-20 pb-20 px-4 max-w-md mx-auto">
-              {renderContent()}
-            </main>
-            
+          <AuthProvider>
+            <AppContent />
             <Toaster />
             <Sonner />
-          </div>
+          </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

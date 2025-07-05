@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -7,9 +8,11 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
-import { Key, Shield, Bell, Smartphone, Activity, Target, Timer } from "lucide-react"
+import { Shield, Bell, Smartphone, Activity, Target, LogOut } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useTheme } from "./ThemeProvider"
+import { useAuth } from "@/hooks/useAuth"
+import { useSportProfile } from "@/hooks/useSportProfile"
 
 const SPORTS = [
   { value: "swimming", label: "Swimming", icon: "🏊‍♂️" },
@@ -29,7 +32,6 @@ const EXPERIENCE_LEVELS = [
 ]
 
 export function Settings() {
-  const [apiKey, setApiKey] = useState("")
   const [notifications, setNotifications] = useState(true)
   const [healthSync, setHealthSync] = useState(false)
   const [primarySport, setPrimarySport] = useState("")
@@ -40,56 +42,50 @@ export function Settings() {
   const [currentGoals, setCurrentGoals] = useState("")
   const { theme, setTheme } = useTheme()
   const { toast } = useToast()
+  const { user, signOut } = useAuth()
+  const { profile, saveProfile, loading } = useSportProfile()
 
   useEffect(() => {
-    const savedApiKey = localStorage.getItem('gemini-api-key')
-    const savedSport = localStorage.getItem('primary-sport')
-    const savedExperience = localStorage.getItem('experience-level')
-    const savedCompetitive = localStorage.getItem('competitive-level')
-    const savedFrequency = localStorage.getItem('training-frequency')
-    const savedDuration = localStorage.getItem('session-duration')
-    const savedGoals = localStorage.getItem('current-goals')
-    
-    if (savedApiKey) setApiKey(savedApiKey)
-    if (savedSport) setPrimarySport(savedSport)
-    if (savedExperience) setExperienceLevel(savedExperience)
-    if (savedCompetitive) setCompetitiveLevel(savedCompetitive)
-    if (savedFrequency) setTrainingFrequency([parseInt(savedFrequency)])
-    if (savedDuration) setSessionDuration([parseInt(savedDuration)])
-    if (savedGoals) setCurrentGoals(savedGoals)
-  }, [])
+    if (profile.primarySport) {
+      setPrimarySport(profile.primarySport)
+      setExperienceLevel(profile.experienceLevel)
+      setCompetitiveLevel(profile.competitiveLevel)
+      setTrainingFrequency([profile.trainingFrequency])
+      setSessionDuration([profile.sessionDuration])
+      setCurrentGoals(profile.currentGoals)
+    }
+  }, [profile])
 
-  const saveApiKey = () => {
-    if (apiKey.trim()) {
-      localStorage.setItem('gemini-api-key', apiKey.trim())
+  const saveSportProfile = async () => {
+    const success = await saveProfile({
+      primarySport,
+      experienceLevel,
+      competitiveLevel,
+      trainingFrequency: trainingFrequency[0],
+      sessionDuration: sessionDuration[0],
+      currentGoals
+    })
+    
+    if (success) {
       toast({
-        title: "API Key Saved",
-        description: "Your Gemini API key has been saved securely.",
+        title: "Sport Profile Saved",
+        description: "Your sport profile has been updated successfully.",
       })
     } else {
-      localStorage.removeItem('gemini-api-key')
       toast({
-        title: "API Key Removed",
-        description: "Your API key has been removed.",
+        title: "Error",
+        description: "Failed to save sport profile. Please try again.",
+        variant: "destructive"
       })
     }
   }
 
-  const saveSportProfile = () => {
-    localStorage.setItem('primary-sport', primarySport)
-    localStorage.setItem('experience-level', experienceLevel)
-    localStorage.setItem('competitive-level', competitiveLevel)
-    localStorage.setItem('training-frequency', trainingFrequency[0].toString())
-    localStorage.setItem('session-duration', sessionDuration[0].toString())
-    localStorage.setItem('current-goals', currentGoals)
-    
+  const handleSignOut = async () => {
+    await signOut()
     toast({
-      title: "Sport Profile Saved",
-      description: "Your sport profile has been updated successfully.",
+      title: "Signed out",
+      description: "You have been successfully signed out.",
     })
-
-    // Trigger a custom event to notify other components
-    window.dispatchEvent(new CustomEvent('sportProfileUpdated'))
   }
 
   const selectedSport = SPORTS.find(sport => sport.value === primarySport)
@@ -195,42 +191,12 @@ export function Settings() {
                 />
               </div>
 
-              <Button onClick={saveSportProfile} className="w-full">
+              <Button onClick={saveSportProfile} className="w-full" disabled={loading}>
                 <Target className="mr-2 h-4 w-4" />
-                Save Sport Profile
+                {loading ? "Saving..." : "Save Sport Profile"}
               </Button>
             </>
           )}
-        </CardContent>
-      </Card>
-
-      <Card className="glass border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5" />
-            AI Configuration
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="api-key">Gemini API Key</Label>
-            <Input
-              id="api-key"
-              type="password"
-              placeholder="Enter your Gemini API key"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Your API key is stored locally and never shared. Get one from Google AI Studio.
-            </p>
-            <p className="text-xs text-orange-600">
-              ⚠️ For better security, consider connecting to Supabase to store API keys on the backend.
-            </p>
-          </div>
-          <Button onClick={saveApiKey} className="w-full">
-            Save API Key
-          </Button>
         </CardContent>
       </Card>
 
@@ -302,6 +268,26 @@ export function Settings() {
       <Card className="glass border-0">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Account
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-sm space-y-1">
+            <p><strong>Email:</strong> {user?.email}</p>
+            <p><strong>Account ID:</strong> {user?.id.slice(0, 8)}...</p>
+          </div>
+          <Separator />
+          <Button onClick={handleSignOut} variant="outline" className="w-full">
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="glass border-0">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
             About PulseTrack
           </CardTitle>
@@ -315,7 +301,7 @@ export function Settings() {
           <Separator />
           <p className="text-xs text-muted-foreground">
             PulseTrack uses AI to generate personalized workouts based on your preferences and goals.
-            Your data is stored locally on your device for privacy and security.
+            Your data is securely stored and protected.
           </p>
         </CardContent>
       </Card>

@@ -9,7 +9,114 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_sport_profiles: {
+        Row: {
+          competitive_level: string
+          created_at: string
+          current_goals: string | null
+          experience_level: string
+          id: string
+          primary_sport: string
+          session_duration: number
+          training_frequency: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          competitive_level: string
+          created_at?: string
+          current_goals?: string | null
+          experience_level: string
+          id?: string
+          primary_sport: string
+          session_duration?: number
+          training_frequency?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          competitive_level?: string
+          created_at?: string
+          current_goals?: string | null
+          experience_level?: string
+          id?: string
+          primary_sport?: string
+          session_duration?: number
+          training_frequency?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      workouts: {
+        Row: {
+          completed: boolean | null
+          created_at: string
+          description: string | null
+          duration: number | null
+          equipment: Json | null
+          exercises: Json
+          id: string
+          sport: string
+          title: string
+          user_id: string
+          workout_type: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string
+          description?: string | null
+          duration?: number | null
+          equipment?: Json | null
+          exercises: Json
+          id?: string
+          sport: string
+          title: string
+          user_id: string
+          workout_type: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string
+          description?: string | null
+          duration?: number | null
+          equipment?: Json | null
+          exercises?: Json
+          id?: string
+          sport?: string
+          title?: string
+          user_id?: string
+          workout_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
