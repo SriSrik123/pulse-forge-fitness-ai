@@ -1,448 +1,340 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { Slider } from "@/components/ui/slider"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Zap, Clock, Target, Sparkles, Waves, Dumbbell } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Activity, Clock, Target, Users, Dumbbell, Zap, Play, Edit3 } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
-import { WorkoutModifier } from "./WorkoutModifier"
-import { WorkoutCompletion } from "./WorkoutCompletion"
+import { useAuth } from "@/hooks/useAuth"
+import { useSportProfile } from "@/hooks/useSportProfile"
+import { useToast } from "@/hooks/use-toast"
+import { WorkoutCompletion } from "@/components/WorkoutCompletion"
+import { WorkoutModifier } from "@/components/WorkoutModifier"
 
-const sportEquipment = {
-  swimming: [
-    { id: "pool", label: "Swimming Pool" },
-    { id: "kickboard", label: "Kickboard" },
-    { id: "pull-buoy", label: "Pull Buoy" },
-    { id: "fins", label: "Swim Fins" },
-    { id: "paddles", label: "Hand Paddles" },
-    { id: "snorkel", label: "Swimming Snorkel" }
-  ],
-  running: [
-    { id: "treadmill", label: "Treadmill" },
-    { id: "track", label: "Running Track" },
-    { id: "trails", label: "Trail Access" },
-    { id: "hills", label: "Hills/Inclines" },
-    { id: "resistance-bands", label: "Resistance Bands" }
-  ],
-  cycling: [
-    { id: "road-bike", label: "Road Bike" },
-    { id: "mountain-bike", label: "Mountain Bike" },
-    { id: "trainer", label: "Indoor Trainer" },
-    { id: "power-meter", label: "Power Meter" },
-    { id: "heart-rate", label: "Heart Rate Monitor" }
-  ],
-  basketball: [
-    { id: "court", label: "Basketball Court" },
-    { id: "hoop", label: "Basketball Hoop" },
-    { id: "agility-ladder", label: "Agility Ladder" },
-    { id: "cones", label: "Training Cones" },
-    { id: "plyometric-box", label: "Plyometric Box" }
-  ],
-  soccer: [
-    { id: "field", label: "Soccer Field" },
-    { id: "goals", label: "Soccer Goals" },
-    { id: "cones", label: "Training Cones" },
-    { id: "agility-ladder", label: "Agility Ladder" },
-    { id: "ball", label: "Soccer Ball" }
-  ],
-  tennis: [
-    { id: "court", label: "Tennis Court" },
-    { id: "racket", label: "Tennis Racket" },
-    { id: "ball-machine", label: "Ball Machine" },
-    { id: "agility-ladder", label: "Agility Ladder" },
-    { id: "resistance-bands", label: "Resistance Bands" }
-  ]
-}
+const SPORTS = [
+  { value: "swimming", label: "Swimming", icon: "🏊‍♂️" },
+  { value: "running", label: "Running", icon: "🏃‍♂️" },
+  { value: "cycling", label: "Cycling", icon: "🚴‍♂️" },
+  { value: "basketball", label: "Basketball", icon: "🏀" },
+  { value: "soccer", label: "Soccer", icon: "⚽" },
+  { value: "tennis", label: "Tennis", icon: "🎾" },
+]
+
+const WORKOUT_TYPES = [
+  { value: "training", label: "Sport Training", icon: "🏃‍♂️" },
+  { value: "supplement", label: "Gym Workout", icon: "💪" },
+  { value: "strength", label: "Strength", icon: "🏋️‍♀️" },
+  { value: "cardio", label: "Cardio", icon: "❤️" },
+  { value: "yoga", label: "Yoga", icon: "🧘‍♀️" },
+  { value: "hiit", label: "HIIT", icon: "🔥" },
+]
 
 export function WorkoutGenerator() {
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [duration, setDuration] = useState([30])
-  const [workoutType, setWorkoutType] = useState("")
-  const [sport, setSport] = useState("")
-  const [fitnessLevel, setFitnessLevel] = useState("")
-  const [equipment, setEquipment] = useState("")
-  const [sportEquipmentList, setSportEquipmentList] = useState<string[]>([])
-  const [goals, setGoals] = useState("")
-  const [sessionType, setSessionType] = useState("")
-  const [generatedWorkout, setGeneratedWorkout] = useState<any>(null)
-  const [showModifier, setShowModifier] = useState(false)
-  const [showCompletion, setShowCompletion] = useState(false)
+  const { user } = useAuth()
   const { toast } = useToast()
+  const { profile, getSportInfo } = useSportProfile()
+  const sportInfo = getSportInfo(profile.primarySport)
+  const [generatedWorkout, setGeneratedWorkout] = useState<any>(null)
+  const [generating, setGenerating] = useState(false)
+  const [selectedSport, setSelectedSport] = useState(profile.primarySport)
+  const [selectedWorkoutType, setSelectedWorkoutType] = useState("training")
+	const [equipmentList, setEquipmentList] = useState<string[]>([])
+  const [showCompletion, setShowCompletion] = useState(false)
+  const [showModifier, setShowModifier] = useState(false)
 
-  const handleSportEquipmentChange = (equipmentId: string, checked: boolean) => {
-    if (checked) {
-      setSportEquipmentList([...sportEquipmentList, equipmentId])
-    } else {
-      setSportEquipmentList(sportEquipmentList.filter(id => id !== equipmentId))
+  useEffect(() => {
+    if (profile.primarySport) {
+      setSelectedSport(profile.primarySport)
     }
-  }
+  }, [profile.primarySport])
 
   const generateWorkout = async () => {
-    if (!workoutType || !fitnessLevel) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in workout type and fitness level.",
-        variant: "destructive"
-      })
-      return
-    }
+    if (!user) return
 
-    setIsGenerating(true)
-    
+    setGenerating(true)
     try {
-      const { data, error } = await supabase.functions.invoke('generate-workout', {
+      const { data } = await supabase.functions.invoke('generate-workout', {
         body: {
-          workoutType,
-          sport,
-          sessionType,
-          fitnessLevel,
-          duration: duration[0],
-          equipment,
-          sportEquipmentList,
-          goals
+          workoutType: selectedWorkoutType,
+          sport: selectedSport,
+          sessionType: selectedWorkoutType,
+          fitnessLevel: profile.experienceLevel,
+          duration: profile.sessionDuration,
+          equipment: equipmentList,
+          sportEquipmentList: equipmentList,
+          goals: `Improve ${selectedSport} performance`
         }
       })
 
-      if (error) {
-        throw error
-      }
-
       if (data?.workout) {
         setGeneratedWorkout(data.workout)
+      } else {
         toast({
-          title: "Workout Generated!",
-          description: "Your personalized workout is ready and saved.",
+          title: "Error",
+          description: "Failed to generate workout. Please try again.",
+          variant: "destructive"
         })
       }
-    } catch (error) {
-      console.error('Error generating workout:', error)
+    } catch (error: any) {
       toast({
-        title: "Generation Failed",
-        description: "Failed to generate workout. Please try again.",
+        title: "Error",
+        description: error.message,
         variant: "destructive"
       })
     } finally {
-      setIsGenerating(false)
+      setGenerating(false)
     }
+  }
+
+  const selectEquipment = (equipment: string) => {
+		setEquipmentList((prevEquipment) =>
+			prevEquipment.includes(equipment)
+				? prevEquipment.filter((item) => item !== equipment)
+				: [...prevEquipment, equipment]
+		)
+	}
+
+  const handleWorkoutComplete = () => {
+    setGeneratedWorkout(null)
+    setShowCompletion(false)
+    setShowModifier(false)
+    toast({
+      title: "Success!",
+      description: "Workout saved to your history. Great job!",
+    })
   }
 
   const handleWorkoutModified = (modifiedWorkout: any) => {
     setGeneratedWorkout(modifiedWorkout)
     setShowModifier(false)
-    toast({
-      title: "Workout Updated! ✨",
-      description: "Your modified workout is ready to use.",
-    })
   }
 
-  const handleWorkoutCompleted = () => {
-    setGeneratedWorkout(null)
-    setShowCompletion(false)
-    setShowModifier(false)
-    // Reset form
-    setWorkoutType("")
-    setSport("")
-    setSessionType("")
-    setFitnessLevel("")
-    setEquipment("")
-    setSportEquipmentList([])
-    setGoals("")
-    setDuration([30])
+  if (generatedWorkout) {
+    if (showCompletion) {
+      return <WorkoutCompletion workout={generatedWorkout} onComplete={handleWorkoutComplete} />
+    }
+
+    if (showModifier) {
+      return <WorkoutModifier originalWorkout={generatedWorkout} onModified={handleWorkoutModified} />
+    }
+
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <Card className="glass border-0">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-pulse-blue" />
+              {generatedWorkout.title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-pulse-blue/20 text-pulse-blue">
+                {generatedWorkout.type}
+              </Badge>
+              <Badge className="bg-pulse-green/20 text-pulse-green">
+                AI Generated
+              </Badge>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  {generatedWorkout.duration} min
+                </div>
+                <div className="flex items-center gap-1">
+                  <Zap className="h-4 w-4" />
+                  {generatedWorkout.sport}
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {generatedWorkout.exercises?.length} exercises
+              </div>
+            </div>
+
+            <Separator />
+
+            <h4 className="text-sm font-medium">Warm-up</h4>
+            <ul className="list-disc list-inside text-sm text-muted-foreground">
+              {generatedWorkout.warmup?.map((item: string, index: number) => (
+                <li key={index}>{item}</li>
+              ))}
+            </ul>
+
+            <Separator />
+
+            <h4 className="text-sm font-medium">Workout</h4>
+            <ScrollArea className="h-[200px] rounded-md">
+              <ul className="space-y-2 text-sm">
+                {generatedWorkout.exercises?.map((exercise: any, index: number) => (
+                  <li key={index} className="grid grid-cols-12 gap-2">
+                    <div className="col-span-7 font-medium">{exercise.name}</div>
+                    <div className="col-span-2 text-muted-foreground">{exercise.sets} sets</div>
+                    <div className="col-span-3 text-muted-foreground">{exercise.reps} reps</div>
+                    {exercise.description && (
+                      <div className="col-span-12 text-xs text-muted-foreground italic">
+                        {exercise.description}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </ScrollArea>
+
+            <Separator />
+
+            <h4 className="text-sm font-medium">Cool-down</h4>
+            <ul className="list-disc list-inside text-sm text-muted-foreground">
+              {generatedWorkout.cooldown?.map((item: string, index: number) => (
+                <li key={index}>{item}</li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+        
+        <div className="flex gap-3">
+          <Button 
+            onClick={() => setShowCompletion(true)}
+            className="flex-1 pulse-gradient text-white font-semibold"
+          >
+            <Play className="mr-2 h-4 w-4" />
+            Mark as Done
+          </Button>
+          
+          <Button 
+            onClick={() => setShowModifier(true)}
+            variant="outline"
+            className="flex-1"
+          >
+            <Edit3 className="mr-2 h-4 w-4" />
+            Modify Workout
+          </Button>
+        </div>
+
+        <Button 
+          onClick={() => setGeneratedWorkout(null)}
+          variant="ghost"
+          className="w-full"
+        >
+          Generate New Workout
+        </Button>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="text-center py-4">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full pulse-gradient-purple flex items-center justify-center">
-          <Sparkles className="h-8 w-8 text-white" />
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <span className="text-2xl">{sportInfo.icon}</span>
+          <h2 className="text-2xl font-bold">
+            {sportInfo.label} Workout Generator
+          </h2>
         </div>
-        <h2 className="text-2xl font-bold mb-2">AI Workout Generator</h2>
-        <p className="text-muted-foreground">Sport-specific training & gym sessions</p>
+        <p className="text-muted-foreground">
+          AI-powered workout generator for {sportInfo.label}
+        </p>
       </div>
 
       <Card className="glass border-0">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
-            Training Focus
+            Customize Workout
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label>Training Type</Label>
-            <Select value={workoutType} onValueChange={setWorkoutType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select training type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="general">General Fitness</SelectItem>
-                <SelectItem value="sport-specific">Sport-Specific Training</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {workoutType === "sport-specific" && (
-            <>
-              <div className="space-y-2">
-                <Label>Sport</Label>
-                <Select value={sport} onValueChange={(value) => {
-                  setSport(value)
-                  setSportEquipmentList([])
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your sport" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="swimming">Swimming</SelectItem>
-                    <SelectItem value="running">Running</SelectItem>
-                    <SelectItem value="cycling">Cycling</SelectItem>
-                    <SelectItem value="basketball">Basketball</SelectItem>
-                    <SelectItem value="soccer">Soccer</SelectItem>
-                    <SelectItem value="tennis">Tennis</SelectItem>
-                  </SelectContent>
-                </Select>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h3 className="text-sm font-medium">Sport</h3>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {SPORTS.map((sport) => (
+                  <Badge
+                    key={sport.value}
+                    variant={selectedSport === sport.value ? "default" : "outline"}
+                    onClick={() => setSelectedSport(sport.value)}
+                    className="cursor-pointer"
+                  >
+                    {sport.label}
+                  </Badge>
+                ))}
               </div>
+            </div>
 
-              {sport && (
-                <div className="space-y-2">
-                  <Label>Session Type</Label>
-                  <Select value={sessionType} onValueChange={setSessionType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select session type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="training">Sport Training Session</SelectItem>
-                      <SelectItem value="supplement">Supplementary Gym Session</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {sport && sportEquipment[sport as keyof typeof sportEquipment] && (
-                <div className="space-y-2">
-                  <Label>Available Equipment</Label>
-                  <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                    {sportEquipment[sport as keyof typeof sportEquipment].map((item) => (
-                      <div key={item.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={item.id}
-                          checked={sportEquipmentList.includes(item.id)}
-                          onCheckedChange={(checked) => handleSportEquipmentChange(item.id, checked as boolean)}
-                        />
-                        <Label htmlFor={item.id} className="text-sm">{item.label}</Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {workoutType === "general" && (
-            <>
-              <div className="space-y-2">
-                <Label>Workout Type</Label>
-                <Select value={equipment} onValueChange={setEquipment}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select workout type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="strength">Strength Training</SelectItem>
-                    <SelectItem value="cardio">Cardio</SelectItem>
-                    <SelectItem value="hiit">HIIT</SelectItem>
-                    <SelectItem value="yoga">Yoga</SelectItem>
-                    <SelectItem value="full-body">Full Body</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div>
+              <h3 className="text-sm font-medium">Workout Type</h3>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {WORKOUT_TYPES.map((type) => (
+                  <Badge
+                    key={type.value}
+                    variant={selectedWorkoutType === type.value ? "default" : "outline"}
+                    onClick={() => setSelectedWorkoutType(type.value)}
+                    className="cursor-pointer"
+                  >
+                    {type.label}
+                  </Badge>
+                ))}
               </div>
-
-              <div className="space-y-2">
-                <Label>Equipment Available</Label>
-                <Select value={equipment} onValueChange={setEquipment}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select equipment" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Bodyweight Only</SelectItem>
-                    <SelectItem value="dumbbells">Dumbbells</SelectItem>
-                    <SelectItem value="resistance-bands">Resistance Bands</SelectItem>
-                    <SelectItem value="full-gym">Full Gym Access</SelectItem>
-                    <SelectItem value="home-gym">Home Gym Setup</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </>
-          )}
-
-          <div className="space-y-2">
-            <Label>Fitness Level</Label>
-            <Select value={fitnessLevel} onValueChange={setFitnessLevel}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="beginner">Beginner</SelectItem>
-                <SelectItem value="intermediate">Intermediate</SelectItem>
-                <SelectItem value="advanced">Advanced</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Duration: {duration[0]} minutes</Label>
-            <Slider
-              value={duration}
-              onValueChange={setDuration}
-              max={120}
-              min={15}
-              step={5}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>15 min</span>
-              <span>120 min</span>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Specific Goals (Optional)</Label>
-            <Textarea
-              placeholder={sport ? `e.g., improve ${sport} technique, build endurance...` : "e.g., lose weight, build muscle, improve endurance..."}
-              value={goals}
-              onChange={(e) => setGoals(e.target.value)}
-              className="min-h-[80px]"
-            />
-          </div>
+					<div>
+						<h3 className="text-sm font-medium">Equipment</h3>
+						<div className="flex flex-wrap gap-2 mt-2">
+							{[
+								"Resistance Bands",
+								"Dumbbells",
+								"Kettlebells",
+								"Barbell",
+								"Pull-up Bar",
+								"Medicine Ball",
+								"Bosu Ball",
+								"Foam Roller",
+							].map((equipment) => (
+								<Badge
+									key={equipment}
+									variant={equipmentList.includes(equipment) ? "default" : "outline"}
+									onClick={() => selectEquipment(equipment)}
+									className="cursor-pointer"
+								>
+									{equipment}
+								</Badge>
+							))}
+						</div>
+					</div>
 
-          <Button 
-            onClick={generateWorkout} 
-            disabled={isGenerating}
+          <Button
+            onClick={generateWorkout}
             className="w-full pulse-gradient text-white font-semibold"
+            disabled={generating}
           >
-            {isGenerating ? (
+            {generating ? (
               <>
-                <Zap className="mr-2 h-4 w-4 animate-pulse" />
+                <Activity className="mr-2 h-4 w-4 animate-spin" />
                 Generating...
               </>
             ) : (
               <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Generate {sport ? `${sport} ` : ''}Workout
+                <Activity className="mr-2 h-4 w-4" />
+                Generate Workout
               </>
             )}
           </Button>
         </CardContent>
       </Card>
 
-      {generatedWorkout && (
-        <>
-          <Card className="glass border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {generatedWorkout.sport ? <Waves className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
-                {generatedWorkout.title}
-              </CardTitle>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span>Duration: {generatedWorkout.duration} minutes</span>
-                {generatedWorkout.sport && (
-                  <span className="text-pulse-blue">Sport: {generatedWorkout.sport}</span>
-                )}
-                {generatedWorkout.type && (
-                  <span className="text-pulse-green">Type: {generatedWorkout.type}</span>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h4 className="font-semibold text-pulse-green mb-2">Warm-up</h4>
-                <ul className="space-y-1 text-sm">
-                  {generatedWorkout.warmup?.map((exercise: string, index: number) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-pulse-green" />
-                      {exercise}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-pulse-blue mb-2">
-                  {generatedWorkout.type === 'supplement' ? 'Gym Exercises' : 'Main Training'}
-                </h4>
-                <div className="space-y-3">
-                  {generatedWorkout.exercises?.map((exercise: any, index: number) => (
-                    <div key={index} className="p-3 rounded-lg bg-muted/30">
-                      <div className="flex justify-between items-start mb-1">
-                        <div className="flex items-center gap-2">
-                          <h5 className="font-medium">{exercise.name}</h5>
-                          {exercise.sportSpecific && (
-                            <span className="text-xs bg-pulse-blue/20 text-pulse-blue px-2 py-1 rounded">
-                              Sport-Specific
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {exercise.sets} sets × {exercise.reps}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-1">{exercise.description}</p>
-                      <div className="text-xs text-pulse-cyan">Rest: {exercise.rest}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-pulse-purple mb-2">Cool-down</h4>
-                <ul className="space-y-1 text-sm">
-                  {generatedWorkout.cooldown?.map((exercise: string, index: number) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-pulse-purple" />
-                      {exercise}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="flex gap-2">
-                <Button 
-                  className="flex-1" 
-                  variant="outline"
-                  onClick={() => setShowModifier(!showModifier)}
-                >
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Modify Workout
-                </Button>
-                <Button 
-                  className="flex-1 pulse-gradient text-white font-semibold"
-                  onClick={() => setShowCompletion(true)}
-                >
-                  <Dumbbell className="mr-2 h-4 w-4" />
-                  Mark as Done
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {showModifier && (
-            <WorkoutModifier
-              originalWorkout={generatedWorkout}
-              onModified={handleWorkoutModified}
-            />
-          )}
-
-          {showCompletion && (
-            <WorkoutCompletion
-              workout={generatedWorkout}
-              onComplete={handleWorkoutCompleted}
-            />
-          )}
-        </>
-      )}
+      <Card className="glass border-0">
+        <CardContent className="text-center py-8">
+          <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-2">AI Workout Generator</h3>
+          <p className="text-muted-foreground">
+            Customize your workout preferences and generate a personalized
+            workout plan.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

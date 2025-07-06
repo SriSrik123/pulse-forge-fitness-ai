@@ -83,7 +83,9 @@ export type Database = {
           duration: number | null
           equipment: Json | null
           exercises: Json
+          feeling: string | null
           id: string
+          journal_entry: string | null
           sport: string
           title: string
           user_id: string
@@ -96,7 +98,9 @@ export type Database = {
           duration?: number | null
           equipment?: Json | null
           exercises: Json
+          feeling?: string | null
           id?: string
+          journal_entry?: string | null
           sport: string
           title: string
           user_id: string
@@ -109,7 +113,9 @@ export type Database = {
           duration?: number | null
           equipment?: Json | null
           exercises?: Json
+          feeling?: string | null
           id?: string
+          journal_entry?: string | null
           sport?: string
           title?: string
           user_id?: string
