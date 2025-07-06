@@ -92,7 +92,8 @@ serve(async (req) => {
       }`;
     }
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
+    // Updated to use the correct Gemini model name
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -109,6 +110,7 @@ serve(async (req) => {
     const data = await response.json();
     
     if (!response.ok) {
+      console.error('Gemini API Error:', data);
       throw new Error(data.error?.message || 'Failed to generate workout');
     }
     
@@ -118,23 +120,16 @@ serve(async (req) => {
       
       let workout;
       if (jsonMatch) {
-        workout = JSON.parse(jsonMatch[0]);
+        try {
+          workout = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.error('JSON Parse Error:', parseError);
+          // Fallback workout if JSON parsing fails
+          workout = createFallbackWorkout(sport, sessionType, workoutType, duration);
+        }
       } else {
         // Fallback workout
-        const fallbackTitle = sport ? `${sport} ${sessionType} Session` : `${workoutType} Workout`;
-        workout = {
-          title: fallbackTitle,
-          duration: duration,
-          sport: sport,
-          type: sessionType,
-          warmup: ["Dynamic warm-up", "Joint mobility", "Light movement preparation"],
-          exercises: [
-            { name: "Main Exercise 1", sets: 3, reps: "8-12", rest: "60s", description: "Primary movement pattern", sportSpecific: !!sport },
-            { name: "Main Exercise 2", sets: 3, reps: "10-15", rest: "60s", description: "Secondary movement", sportSpecific: !!sport },
-            { name: "Main Exercise 3", sets: 3, reps: "30s", rest: "45s", description: "Conditioning element", sportSpecific: !!sport }
-          ],
-          cooldown: ["Static stretching", "Deep breathing", "Recovery"]
-        };
+        workout = createFallbackWorkout(sport, sessionType, workoutType, duration);
       }
 
       // Save workout to database
@@ -170,3 +165,20 @@ serve(async (req) => {
     });
   }
 });
+
+function createFallbackWorkout(sport: string, sessionType: string, workoutType: string, duration: number) {
+  const fallbackTitle = sport ? `${sport} ${sessionType} Session` : `${workoutType} Workout`;
+  return {
+    title: fallbackTitle,
+    duration: duration,
+    sport: sport,
+    type: sessionType,
+    warmup: ["Dynamic warm-up", "Joint mobility", "Light movement preparation"],
+    exercises: [
+      { name: "Main Exercise 1", sets: 3, reps: "8-12", rest: "60s", description: "Primary movement pattern", sportSpecific: !!sport },
+      { name: "Main Exercise 2", sets: 3, reps: "10-15", rest: "60s", description: "Secondary movement", sportSpecific: !!sport },
+      { name: "Main Exercise 3", sets: 3, reps: "30s", rest: "45s", description: "Conditioning element", sportSpecific: !!sport }
+    ],
+    cooldown: ["Static stretching", "Deep breathing", "Recovery"]
+  };
+}

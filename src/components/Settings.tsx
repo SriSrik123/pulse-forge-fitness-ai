@@ -8,11 +8,13 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Shield, Bell, Smartphone, Activity, Target, LogOut } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useTheme } from "./ThemeProvider"
 import { useAuth } from "@/hooks/useAuth"
 import { useSportProfile } from "@/hooks/useSportProfile"
+import { FitnessIntegration } from "./FitnessIntegration"
 
 const SPORTS = [
   { value: "swimming", label: "Swimming", icon: "🏊‍♂️" },
@@ -33,7 +35,6 @@ const EXPERIENCE_LEVELS = [
 
 export function Settings() {
   const [notifications, setNotifications] = useState(true)
-  const [healthSync, setHealthSync] = useState(false)
   const [primarySport, setPrimarySport] = useState("")
   const [experienceLevel, setExperienceLevel] = useState("")
   const [competitiveLevel, setCompetitiveLevel] = useState("")
@@ -97,214 +98,185 @@ export function Settings() {
         <p className="text-muted-foreground">Customize your PulseTrack experience</p>
       </div>
 
-      <Card className="glass border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            Sport Profile
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Primary Sport</Label>
-            <Select value={primarySport} onValueChange={setPrimarySport}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select your primary sport" />
-              </SelectTrigger>
-              <SelectContent>
-                {SPORTS.map(sport => (
-                  <SelectItem key={sport.value} value={sport.value}>
-                    <div className="flex items-center gap-2">
-                      <span>{sport.icon}</span>
-                      <span>{sport.label}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <Tabs defaultValue="profile" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="fitness">Fitness Apps</TabsTrigger>
+          <TabsTrigger value="account">Account</TabsTrigger>
+        </TabsList>
 
-          {primarySport && (
-            <>
+        <TabsContent value="profile" className="space-y-4">
+          <Card className="glass border-0">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Sport Profile
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Experience Level</Label>
-                <Select value={experienceLevel} onValueChange={setExperienceLevel}>
+                <Label>Primary Sport</Label>
+                <Select value={primarySport} onValueChange={setPrimarySport}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select your experience level" />
+                    <SelectValue placeholder="Select your primary sport" />
                   </SelectTrigger>
                   <SelectContent>
-                    {EXPERIENCE_LEVELS.map(level => (
-                      <SelectItem key={level.value} value={level.value}>
-                        {level.label}
+                    {SPORTS.map(sport => (
+                      <SelectItem key={sport.value} value={sport.value}>
+                        <div className="flex items-center gap-2">
+                          <span>{sport.icon}</span>
+                          <span>{sport.label}</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Competitive Level</Label>
-                <Select value={competitiveLevel} onValueChange={setCompetitiveLevel}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your competitive level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="recreational">Recreational</SelectItem>
-                    <SelectItem value="club">Club Level</SelectItem>
-                    <SelectItem value="regional">Regional Competition</SelectItem>
-                    <SelectItem value="national">National Level</SelectItem>
-                    <SelectItem value="international">International Level</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Training Frequency: {trainingFrequency[0]} sessions/week</Label>
-                <Slider
-                  value={trainingFrequency}
-                  onValueChange={setTrainingFrequency}
-                  max={7}
-                  min={1}
-                  step={1}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Typical Session Duration: {sessionDuration[0]} minutes</Label>
-                <Slider
-                  value={sessionDuration}
-                  onValueChange={setSessionDuration}
-                  max={180}
-                  min={30}
-                  step={15}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Current Goals</Label>
-                <Input
-                  placeholder={`e.g., improve ${selectedSport?.label.toLowerCase()} technique, prepare for competition...`}
-                  value={currentGoals}
-                  onChange={(e) => setCurrentGoals(e.target.value)}
-                />
-              </div>
-
-              <Button onClick={saveSportProfile} className="w-full" disabled={loading}>
-                <Target className="mr-2 h-4 w-4" />
-                {loading ? "Saving..." : "Save Sport Profile"}
-              </Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="glass border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Smartphone className="h-5 w-5" />
-            Health Integration
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Sync with Health Apps</Label>
-              <p className="text-sm text-muted-foreground">
-                Connect to Apple Health, Google Fit, or Samsung Health
-              </p>
-            </div>
-            <Switch checked={healthSync} onCheckedChange={setHealthSync} />
-          </div>
-          
-          <Separator />
-          
-          <div className="space-y-3">
-            <h4 className="font-medium">Available Integrations</h4>
-            {[
-              { name: 'Apple Health', status: 'Not Connected', icon: '🍎' },
-              { name: 'Google Fit', status: 'Not Connected', icon: '🟢' },
-              { name: 'Samsung Health', status: 'Not Connected', icon: '📱' },
-              { name: 'Fitbit', status: 'Not Connected', icon: '⌚' },
-            ].map((integration, index) => (
-              <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                <div className="flex items-center gap-3">
-                  <span>{integration.icon}</span>
-                  <div>
-                    <div className="font-medium">{integration.name}</div>
-                    <div className="text-sm text-muted-foreground">{integration.status}</div>
+              {primarySport && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Experience Level</Label>
+                    <Select value={experienceLevel} onValueChange={setExperienceLevel}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your experience level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EXPERIENCE_LEVELS.map(level => (
+                          <SelectItem key={level.value} value={level.value}>
+                            {level.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label>Competitive Level</Label>
+                    <Select value={competitiveLevel} onValueChange={setCompetitiveLevel}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your competitive level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="recreational">Recreational</SelectItem>
+                        <SelectItem value="club">Club Level</SelectItem>
+                        <SelectItem value="regional">Regional Competition</SelectItem>
+                        <SelectItem value="national">National Level</SelectItem>
+                        <SelectItem value="international">International Level</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Training Frequency: {trainingFrequency[0]} sessions/week</Label>
+                    <Slider
+                      value={trainingFrequency}
+                      onValueChange={setTrainingFrequency}
+                      max={7}
+                      min={1}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Typical Session Duration: {sessionDuration[0]} minutes</Label>
+                    <Slider
+                      value={sessionDuration}
+                      onValueChange={setSessionDuration}
+                      max={180}
+                      min={30}
+                      step={15}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Current Goals</Label>
+                    <Input
+                      placeholder={`e.g., improve ${selectedSport?.label.toLowerCase()} technique, prepare for competition...`}
+                      value={currentGoals}
+                      onChange={(e) => setCurrentGoals(e.target.value)}
+                    />
+                  </div>
+
+                  <Button onClick={saveSportProfile} className="w-full" disabled={loading}>
+                    <Target className="mr-2 h-4 w-4" />
+                    {loading ? "Saving..." : "Save Sport Profile"}
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="glass border-0">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Notifications
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Workout Reminders</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Get notified about your scheduled workouts
+                  </p>
                 </div>
-                <Button variant="outline" size="sm" disabled>
-                  Connect
-                </Button>
+                <Switch checked={notifications} onCheckedChange={setNotifications} />
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <Card className="glass border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            Notifications
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Workout Reminders</Label>
-              <p className="text-sm text-muted-foreground">
-                Get notified about your scheduled workouts
+        <TabsContent value="fitness">
+          <FitnessIntegration />
+        </TabsContent>
+
+        <TabsContent value="account" className="space-y-4">
+          <Card className="glass border-0">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Account
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-sm space-y-1">
+                <p><strong>Email:</strong> {user?.email}</p>
+                <p><strong>Account ID:</strong> {user?.id.slice(0, 8)}...</p>
+              </div>
+              <Separator />
+              <Button onClick={handleSignOut} variant="outline" className="w-full">
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="glass border-0">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                About PulseTrack
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-sm space-y-1">
+                <p><strong>Version:</strong> 1.0.0</p>
+                <p><strong>Platform:</strong> Web App (iOS/Android Ready)</p>
+                <p><strong>AI Engine:</strong> Google Gemini</p>
+              </div>
+              <Separator />
+              <p className="text-xs text-muted-foreground">
+                PulseTrack uses AI to generate personalized workouts based on your preferences and goals.
+                Your data is securely stored and protected.
               </p>
-            </div>
-            <Switch checked={notifications} onCheckedChange={setNotifications} />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="glass border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Account
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-sm space-y-1">
-            <p><strong>Email:</strong> {user?.email}</p>
-            <p><strong>Account ID:</strong> {user?.id.slice(0, 8)}...</p>
-          </div>
-          <Separator />
-          <Button onClick={handleSignOut} variant="outline" className="w-full">
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card className="glass border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            About PulseTrack
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="text-sm space-y-1">
-            <p><strong>Version:</strong> 1.0.0</p>
-            <p><strong>Platform:</strong> Web App (iOS/Android Ready)</p>
-            <p><strong>AI Engine:</strong> Google Gemini</p>
-          </div>
-          <Separator />
-          <p className="text-xs text-muted-foreground">
-            PulseTrack uses AI to generate personalized workouts based on your preferences and goals.
-            Your data is securely stored and protected.
-          </p>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
