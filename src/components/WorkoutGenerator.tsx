@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Zap, Clock, Target, Sparkles, Waves, Dumbbell } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
+import { WorkoutModifier } from "./WorkoutModifier"
+import { WorkoutCompletion } from "./WorkoutCompletion"
 
 const sportEquipment = {
   swimming: [
@@ -67,6 +69,8 @@ export function WorkoutGenerator() {
   const [goals, setGoals] = useState("")
   const [sessionType, setSessionType] = useState("")
   const [generatedWorkout, setGeneratedWorkout] = useState<any>(null)
+  const [showModifier, setShowModifier] = useState(false)
+  const [showCompletion, setShowCompletion] = useState(false)
   const { toast } = useToast()
 
   const handleSportEquipmentChange = (equipmentId: string, checked: boolean) => {
@@ -124,6 +128,30 @@ export function WorkoutGenerator() {
     } finally {
       setIsGenerating(false)
     }
+  }
+
+  const handleWorkoutModified = (modifiedWorkout: any) => {
+    setGeneratedWorkout(modifiedWorkout)
+    setShowModifier(false)
+    toast({
+      title: "Workout Updated! ✨",
+      description: "Your modified workout is ready to use.",
+    })
+  }
+
+  const handleWorkoutCompleted = () => {
+    setGeneratedWorkout(null)
+    setShowCompletion(false)
+    setShowModifier(false)
+    // Reset form
+    setWorkoutType("")
+    setSport("")
+    setSessionType("")
+    setFitnessLevel("")
+    setEquipment("")
+    setSportEquipmentList([])
+    setGoals("")
+    setDuration([30])
   }
 
   return (
@@ -311,80 +339,109 @@ export function WorkoutGenerator() {
       </Card>
 
       {generatedWorkout && (
-        <Card className="glass border-0">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {generatedWorkout.sport ? <Waves className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
-              {generatedWorkout.title}
-            </CardTitle>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span>Duration: {generatedWorkout.duration} minutes</span>
-              {generatedWorkout.sport && (
-                <span className="text-pulse-blue">Sport: {generatedWorkout.sport}</span>
-              )}
-              {generatedWorkout.type && (
-                <span className="text-pulse-green">Type: {generatedWorkout.type}</span>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h4 className="font-semibold text-pulse-green mb-2">Warm-up</h4>
-              <ul className="space-y-1 text-sm">
-                {generatedWorkout.warmup?.map((exercise: string, index: number) => (
-                  <li key={index} className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-pulse-green" />
-                    {exercise}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-pulse-blue mb-2">
-                {generatedWorkout.type === 'supplement' ? 'Gym Exercises' : 'Main Training'}
-              </h4>
-              <div className="space-y-3">
-                {generatedWorkout.exercises?.map((exercise: any, index: number) => (
-                  <div key={index} className="p-3 rounded-lg bg-muted/30">
-                    <div className="flex justify-between items-start mb-1">
-                      <div className="flex items-center gap-2">
-                        <h5 className="font-medium">{exercise.name}</h5>
-                        {exercise.sportSpecific && (
-                          <span className="text-xs bg-pulse-blue/20 text-pulse-blue px-2 py-1 rounded">
-                            Sport-Specific
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {exercise.sets} sets × {exercise.reps}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-1">{exercise.description}</p>
-                    <div className="text-xs text-pulse-cyan">Rest: {exercise.rest}</div>
-                  </div>
-                ))}
+        <>
+          <Card className="glass border-0">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {generatedWorkout.sport ? <Waves className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
+                {generatedWorkout.title}
+              </CardTitle>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <span>Duration: {generatedWorkout.duration} minutes</span>
+                {generatedWorkout.sport && (
+                  <span className="text-pulse-blue">Sport: {generatedWorkout.sport}</span>
+                )}
+                {generatedWorkout.type && (
+                  <span className="text-pulse-green">Type: {generatedWorkout.type}</span>
+                )}
               </div>
-            </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h4 className="font-semibold text-pulse-green mb-2">Warm-up</h4>
+                <ul className="space-y-1 text-sm">
+                  {generatedWorkout.warmup?.map((exercise: string, index: number) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-pulse-green" />
+                      {exercise}
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-            <div>
-              <h4 className="font-semibold text-pulse-purple mb-2">Cool-down</h4>
-              <ul className="space-y-1 text-sm">
-                {generatedWorkout.cooldown?.map((exercise: string, index: number) => (
-                  <li key={index} className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-pulse-purple" />
-                    {exercise}
-                  </li>
-                ))}
-              </ul>
-            </div>
+              <div>
+                <h4 className="font-semibold text-pulse-blue mb-2">
+                  {generatedWorkout.type === 'supplement' ? 'Gym Exercises' : 'Main Training'}
+                </h4>
+                <div className="space-y-3">
+                  {generatedWorkout.exercises?.map((exercise: any, index: number) => (
+                    <div key={index} className="p-3 rounded-lg bg-muted/30">
+                      <div className="flex justify-between items-start mb-1">
+                        <div className="flex items-center gap-2">
+                          <h5 className="font-medium">{exercise.name}</h5>
+                          {exercise.sportSpecific && (
+                            <span className="text-xs bg-pulse-blue/20 text-pulse-blue px-2 py-1 rounded">
+                              Sport-Specific
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {exercise.sets} sets × {exercise.reps}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-1">{exercise.description}</p>
+                      <div className="text-xs text-pulse-cyan">Rest: {exercise.rest}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-            <Button className="w-full" variant="outline">
-              <Dumbbell className="mr-2 h-4 w-4" />
-              Start {generatedWorkout.sport ? `${generatedWorkout.sport} ` : ''}Session
-            </Button>
-          </CardContent>
-        </Card>
+              <div>
+                <h4 className="font-semibold text-pulse-purple mb-2">Cool-down</h4>
+                <ul className="space-y-1 text-sm">
+                  {generatedWorkout.cooldown?.map((exercise: string, index: number) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-pulse-purple" />
+                      {exercise}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="flex gap-2">
+                <Button 
+                  className="flex-1" 
+                  variant="outline"
+                  onClick={() => setShowModifier(!showModifier)}
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Modify Workout
+                </Button>
+                <Button 
+                  className="flex-1 pulse-gradient text-white font-semibold"
+                  onClick={() => setShowCompletion(true)}
+                >
+                  <Dumbbell className="mr-2 h-4 w-4" />
+                  Mark as Done
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {showModifier && (
+            <WorkoutModifier
+              originalWorkout={generatedWorkout}
+              onModified={handleWorkoutModified}
+            />
+          )}
+
+          {showCompletion && (
+            <WorkoutCompletion
+              workout={generatedWorkout}
+              onComplete={handleWorkoutCompleted}
+            />
+          )}
+        </>
       )}
     </div>
   )
