@@ -1,4 +1,3 @@
-
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,6 +8,7 @@ import { Slider } from "@/components/ui/slider"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Zap, Clock, Target, Sparkles, Waves, Dumbbell } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
 
 const sportEquipment = {
   swimming: [
@@ -78,17 +78,6 @@ export function WorkoutGenerator() {
   }
 
   const generateWorkout = async () => {
-    const apiKey = localStorage.getItem('gemini-api-key')
-    
-    if (!apiKey) {
-      toast({
-        title: "API Key Required",
-        description: "Please set your Gemini API key in Settings first.",
-        variant: "destructive"
-      })
-      return
-    }
-
     if (!workoutType || !fitnessLevel) {
       toast({
         title: "Missing Information",
@@ -101,102 +90,35 @@ export function WorkoutGenerator() {
     setIsGenerating(true)
     
     try {
-      let prompt = ""
-      
-      if (sport && sessionType) {
-        const availableEquipment = sportEquipmentList.join(", ") || "basic equipment"
-        prompt = `Generate a ${duration[0]}-minute ${sport} ${sessionType} session for a ${fitnessLevel} level athlete.
-        Available equipment: ${availableEquipment}.
-        Goals: ${goals || `improve ${sport} performance`}.
-        
-        Please provide a structured ${sessionType} plan with:
-        1. Warm-up (5-10 minutes)
-        2. Main ${sessionType} with exercises/drills, sets, reps, and rest periods
-        3. Cool-down (5-10 minutes)
-        
-        ${sessionType === 'training' ? `Focus on sport-specific skills, technique, and conditioning for ${sport}.` : 
-          `Focus on gym exercises that complement ${sport} performance, targeting relevant muscle groups and movement patterns.`}
-        
-        Format as JSON with this structure:
-        {
-          "title": "${sport} ${sessionType} Session",
-          "duration": ${duration[0]},
-          "sport": "${sport}",
-          "type": "${sessionType}",
-          "warmup": [...],
-          "exercises": [{"name": "", "sets": 0, "reps": "", "rest": "", "description": "", "sportSpecific": true/false}],
-          "cooldown": [...]
-        }`
-      } else {
-        prompt = `Generate a ${duration[0]}-minute ${workoutType} workout for a ${fitnessLevel} fitness level person. 
-        Equipment available: ${equipment || 'bodyweight only'}. 
-        Goals: ${goals || 'general fitness'}. 
-        
-        Please provide a structured workout plan with:
-        1. Warm-up (5 minutes)
-        2. Main workout with exercises, sets, reps, and rest periods
-        3. Cool-down (5 minutes)
-        
-        Format as JSON with this structure:
-        {
-          "title": "Workout Name",
-          "duration": ${duration[0]},
-          "warmup": [...],
-          "exercises": [{"name": "", "sets": 0, "reps": "", "rest": "", "description": ""}],
-          "cooldown": [...]
-        }`
-      }
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }]
-        })
+      const { data, error } = await supabase.functions.invoke('generate-workout', {
+        body: {
+          workoutType,
+          sport,
+          sessionType,
+          fitnessLevel,
+          duration: duration[0],
+          equipment,
+          sportEquipmentList,
+          goals
+        }
       })
 
-      const data = await response.json()
-      
-      if (data.candidates && data.candidates[0]) {
-        const workoutText = data.candidates[0].content.parts[0].text
-        const jsonMatch = workoutText.match(/\{[\s\S]*\}/)
-        
-        if (jsonMatch) {
-          const workout = JSON.parse(jsonMatch[0])
-          setGeneratedWorkout(workout)
-          toast({
-            title: "Workout Generated!",
-            description: "Your personalized workout is ready.",
-          })
-        } else {
-          // Fallback workout
-          const fallbackTitle = sport ? `${sport} ${sessionType} Session` : `${workoutType} Workout`
-          setGeneratedWorkout({
-            title: fallbackTitle,
-            duration: duration[0],
-            sport: sport,
-            type: sessionType,
-            warmup: ["Dynamic warm-up", "Joint mobility", "Light movement preparation"],
-            exercises: [
-              { name: "Main Exercise 1", sets: 3, reps: "8-12", rest: "60s", description: "Primary movement pattern", sportSpecific: !!sport },
-              { name: "Main Exercise 2", sets: 3, reps: "10-15", rest: "60s", description: "Secondary movement", sportSpecific: !!sport },
-              { name: "Main Exercise 3", sets: 3, reps: "30s", rest: "45s", description: "Conditioning element", sportSpecific: !!sport }
-            ],
-            cooldown: ["Static stretching", "Deep breathing", "Recovery"]
-          })
-        }
+      if (error) {
+        throw error
+      }
+
+      if (data?.workout) {
+        setGeneratedWorkout(data.workout)
+        toast({
+          title: "Workout Generated!",
+          description: "Your personalized workout is ready and saved.",
+        })
       }
     } catch (error) {
       console.error('Error generating workout:', error)
       toast({
         title: "Generation Failed",
-        description: "Failed to generate workout. Please check your API key and try again.",
+        description: "Failed to generate workout. Please try again.",
         variant: "destructive"
       })
     } finally {
