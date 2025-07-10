@@ -1,29 +1,23 @@
-# Welcome to your Lovable project
+# Welcome to your project
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/a0147a69-42cb-4db7-a4a4-a13287c24c96
+This is your fitness tracking application.
 
 ## How can I edit this code?
 
 There are several ways of editing your application.
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/a0147a69-42cb-4db7-a4a4-a13287c24c96) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
 **Use your preferred IDE**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will be reflected in your remote repository.
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
 Follow these steps:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+
+# Step 1: Clone the repository using its Git URL.
 git clone <YOUR_GIT_URL>
 
 # Step 2: Navigate to the project directory.
@@ -34,40 +28,56 @@ npm i
 
 # Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
-```
+Edit a file directly in GitHub
 
-**Edit a file directly in GitHub**
+Navigate to the desired file(s).
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Click the "Edit" button (pencil icon) at the top right of the file view.
 
-**Use GitHub Codespaces**
+Make your changes and commit the changes.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Use GitHub Codespaces
 
-## What technologies are used for this project?
+Navigate to the main page of your repository.
 
+Click on the "Code" button (green button) near the top right.
+
+Select the "Codespaces" tab.
+
+Click on "New codespace" to launch a new Codespace environment.
+
+Edit files directly within the Codespace and commit and push your changes once you're done.
+
+What technologies are used for this project?
 This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Vite
 
-## How can I deploy this project?
+TypeScript
 
-Simply open [Lovable](https://lovable.dev/projects/a0147a69-42cb-4db7-a4a4-a13287c24c96) and click on Share -> Publish.
+React
 
-## Can I connect a custom domain to my Lovable project?
+shadcn-ui
 
-Yes, you can!
+Tailwind CSS
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+How can I deploy this project?
+To deploy your web application, you typically build it for production and then host the generated static files on a web server or a static site hosting service. For mobile apps (iOS and Android), you will use Capacitor to build native binaries and then publish them to the respective app stores.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+For web deployment, run:
+
+Bash
+npm run build
+This will create a dist folder with your production-ready web assets. You can then upload these contents to any static web host (e.g., Netlify, Vercel, Firebase Hosting, Apache/Nginx server).
+
+For mobile deployment, after building the web assets (npm run build), you can use Capacitor to prepare native projects:
+
+Bash
+npx cap sync ios
+npx cap open ios # To open in Xcode for iOS app store submission
+npx cap sync android
+npx cap open android # To open in Android Studio for Google Play Store submission
+You would then follow the standard submission processes for the Apple App Store and Google Play Store.
+
+Can I connect a custom domain to my hosted project?
+Yes, if you deploy your web application to a hosting service, you can typically connect a custom domain through that service's configuration settings. Refer to your chosen hosting provider's documentation for specific instructions.
