@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -101,10 +100,16 @@ export function OnboardingSurvey({ onComplete }: OnboardingSurveyProps) {
     
     setLoading(true)
     try {
-      // Save user preferences
+      // First delete existing sport profile to avoid unique constraint issues
+      await supabase
+        .from('user_sport_profiles')
+        .delete()
+        .eq('user_id', user.id)
+
+      // Then insert the new profile
       const { error: profileError } = await supabase
         .from('user_sport_profiles')
-        .upsert({
+        .insert({
           user_id: user.id,
           primary_sport: surveyData.primarySport,
           experience_level: surveyData.experienceLevel,
