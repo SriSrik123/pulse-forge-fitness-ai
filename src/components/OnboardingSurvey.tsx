@@ -309,7 +309,7 @@ export function OnboardingSurvey({ onComplete }: OnboardingSurveyProps) {
                 <div className="space-y-2">
                   <Label>Height</Label>
                   <Input
-                    placeholder="5'8\" or 173cm"
+                    placeholder="5'8&quot; or 173cm"
                     value={surveyData.currentStats.height}
                     onChange={(e) => setSurveyData(prev => ({
                       ...prev,
@@ -332,7 +332,7 @@ export function OnboardingSurvey({ onComplete }: OnboardingSurveyProps) {
               <div className="space-y-2">
                 <Label>Sport-Specific Stats (Optional)</Label>
                 <Input
-                  placeholder={`e.g., 100m freestyle: 1:15, 5K time: 22:30, max bench: 185lbs`}
+                  placeholder="e.g., 100m freestyle: 1:15, 5K time: 22:30, max bench: 185lbs"
                   value={surveyData.currentStats.sportSpecificStats}
                   onChange={(e) => setSurveyData(prev => ({
                     ...prev,
