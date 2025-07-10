@@ -13,14 +13,17 @@ import { Workouts } from "./components/Workouts"
 import { Profile } from "./components/Profile"
 import { Settings } from "./components/Settings"
 import { Auth } from "./components/Auth"
+import { OnboardingSurvey } from "./components/OnboardingSurvey"
+import { useOnboarding } from "./hooks/useOnboarding"
 
 const queryClient = new QueryClient()
 
 function AppContent() {
   const { user, loading } = useAuth()
+  const { needsOnboarding, loading: onboardingLoading, completeOnboarding } = useOnboarding()
   const [activeTab, setActiveTab] = useState('dashboard')
 
-  if (loading) {
+  if (loading || onboardingLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-background/80">
         <div className="text-center">
@@ -33,6 +36,10 @@ function AppContent() {
 
   if (!user) {
     return <Auth />
+  }
+
+  if (needsOnboarding) {
+    return <OnboardingSurvey onComplete={completeOnboarding} />
   }
 
   const renderContent = () => {

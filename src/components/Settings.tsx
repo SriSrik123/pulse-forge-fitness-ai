@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,12 +8,24 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Shield, Bell, Smartphone, Activity, Target, LogOut } from "lucide-react"
+import { Shield, Bell, Smartphone, Activity, Target, LogOut, RotateCcw, AlertTriangle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useTheme } from "./ThemeProvider"
 import { useAuth } from "@/hooks/useAuth"
 import { useSportProfile } from "@/hooks/useSportProfile"
-import { FitnessIntegration } from "./FitnessIntegration"
+import { FitnessDataIntegration } from "./FitnessDataIntegration"
+import { useOnboarding } from "@/hooks/useOnboarding"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 const SPORTS = [
   { value: "swimming", label: "Swimming", icon: "🏊‍♂️" },
@@ -45,6 +56,8 @@ export function Settings() {
   const { toast } = useToast()
   const { user, signOut } = useAuth()
   const { profile, saveProfile, loading } = useSportProfile()
+  const { resetOnboarding } = useOnboarding()
+  const [resetLoading, setResetLoading] = useState(false)
 
   useEffect(() => {
     if (profile.primarySport) {
@@ -87,6 +100,30 @@ export function Settings() {
       title: "Signed out",
       description: "You have been successfully signed out.",
     })
+  }
+
+  const handleResetApp = async () => {
+    setResetLoading(true)
+    try {
+      const success = await resetOnboarding()
+      if (success) {
+        toast({
+          title: "App Reset Complete",
+          description: "Your app has been reset. You'll be taken through the setup process again.",
+        })
+        // The app will automatically redirect to onboarding
+      } else {
+        throw new Error("Reset failed")
+      }
+    } catch (error) {
+      toast({
+        title: "Reset Failed",
+        description: "Unable to reset the app. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setResetLoading(false)
+    }
   }
 
   const selectedSport = SPORTS.find(sport => sport.value === primarySport)
@@ -231,7 +268,7 @@ export function Settings() {
         </TabsContent>
 
         <TabsContent value="fitness">
-          <FitnessIntegration />
+          <FitnessDataIntegration />
         </TabsContent>
 
         <TabsContent value="account" className="space-y-4">
@@ -252,6 +289,48 @@ export function Settings() {
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign Out
               </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="glass border-0">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <RotateCcw className="h-5 w-5" />
+                Reset App
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Reset all your preferences and start fresh with the onboarding process.
+              </p>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full">
+                    <AlertTriangle className="mr-2 h-4 w-4" />
+                    Reset App
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reset App?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will delete all your preferences, sport profile, and settings. 
+                      Your workout history will be preserved. You'll need to go through 
+                      the setup process again. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleResetApp}
+                      disabled={resetLoading}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {resetLoading ? "Resetting..." : "Yes, Reset App"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
 
