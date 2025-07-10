@@ -32,7 +32,11 @@ serve(async (req) => {
 
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     if (!geminiApiKey) {
-      throw new Error('GEMINI_API_KEY is not configured');
+      console.error('GEMINI_API_KEY is not configured');
+      return new Response(
+        JSON.stringify({ error: 'AI service not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const { 
@@ -45,6 +49,8 @@ serve(async (req) => {
       sportEquipmentList,
       goals 
     } = await req.json();
+
+    console.log('Generating workout with params:', { workoutType, sport, sessionType, fitnessLevel, duration });
 
     let prompt = "";
     
@@ -68,9 +74,9 @@ serve(async (req) => {
         "duration": ${duration},
         "sport": "${sport}",
         "type": "${sessionType}",
-        "warmup": [...],
-        "exercises": [{"name": "", "sets": 0, "reps": "", "rest": "", "description": "", "sportSpecific": true/false}],
-        "cooldown": [...]
+        "warmup": ["exercise 1", "exercise 2", "exercise 3"],
+        "exercises": [{"name": "Exercise Name", "sets": 3, "reps": "8-12", "rest": "60s", "description": "Brief description", "sportSpecific": true}],
+        "cooldown": ["stretch 1", "stretch 2", "stretch 3"]
       }`;
     } else {
       prompt = `Generate a ${duration}-minute ${workoutType} workout for a ${fitnessLevel} fitness level person. 
@@ -84,15 +90,16 @@ serve(async (req) => {
       
       Format as JSON with this structure:
       {
-        "title": "Workout Name",
+        "title": "${workoutType} Workout",
         "duration": ${duration},
-        "warmup": [...],
-        "exercises": [{"name": "", "sets": 0, "reps": "", "rest": "", "description": ""}],
-        "cooldown": [...]
+        "warmup": ["exercise 1", "exercise 2", "exercise 3"],
+        "exercises": [{"name": "Exercise Name", "sets": 3, "reps": "8-12", "rest": "60s", "description": "Brief description"}],
+        "cooldown": ["stretch 1", "stretch 2", "stretch 3"]
       }`;
     }
 
-    // Updated to use the correct Gemini model name
+    console.log('Calling Gemini API...');
+
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
@@ -111,34 +118,55 @@ serve(async (req) => {
     
     if (!response.ok) {
       console.error('Gemini API Error:', data);
-      throw new Error(data.error?.message || 'Failed to generate workout');
+      throw new Error(data.error?.message || 'Failed to generate workout from AI service');
     }
+    
+    console.log('Gemini API response received');
+
+    let workout;
     
     if (data.candidates && data.candidates[0]) {
       const workoutText = data.candidates[0].content.parts[0].text;
+      console.log('Raw workout text:', workoutText);
+      
       const jsonMatch = workoutText.match(/\{[\s\S]*\}/);
       
-      let workout;
       if (jsonMatch) {
         try {
           workout = JSON.parse(jsonMatch[0]);
+          console.log('Parsed workout:', workout);
         } catch (parseError) {
           console.error('JSON Parse Error:', parseError);
-          // Fallback workout if JSON parsing fails
           workout = createFallbackWorkout(sport, sessionType, workoutType, duration);
         }
       } else {
-        // Fallback workout
+        console.log('No JSON found in response, using fallback');
         workout = createFallbackWorkout(sport, sessionType, workoutType, duration);
       }
+    } else {
+      console.log('No candidates in response, using fallback');
+      workout = createFallbackWorkout(sport, sessionType, workoutType, duration);
+    }
 
-      // Save workout to database
+    // Ensure workout has required structure
+    if (!workout.title) workout.title = sport ? `${sport} ${sessionType} Session` : `${workoutType} Workout`;
+    if (!workout.duration) workout.duration = duration;
+    if (!workout.warmup) workout.warmup = ["Dynamic warm-up", "Joint mobility", "Light movement preparation"];
+    if (!workout.exercises) workout.exercises = [
+      { name: "Main Exercise", sets: 3, reps: "8-12", rest: "60s", description: "Primary movement pattern" }
+    ];
+    if (!workout.cooldown) workout.cooldown = ["Static stretching", "Deep breathing", "Recovery"];
+
+    console.log('Final workout structure:', workout);
+
+    // Save workout to database
+    try {
       const { error: saveError } = await supabaseClient
         .from('workouts')
         .insert({
           user_id: user.id,
           title: workout.title,
-          description: goals || null,
+          description: goals || `${sport || workoutType} workout session`,
           workout_type: sessionType || workoutType || 'general',
           sport: sport || 'general',
           duration: workout.duration,
@@ -148,18 +176,25 @@ serve(async (req) => {
 
       if (saveError) {
         console.error('Error saving workout:', saveError);
+        // Don't fail the entire request if saving fails
+      } else {
+        console.log('Workout saved successfully');
       }
-
-      return new Response(JSON.stringify({ workout }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    } catch (saveError) {
+      console.error('Database save error:', saveError);
+      // Continue with response even if save fails
     }
 
-    throw new Error('No workout generated');
+    return new Response(JSON.stringify({ workout }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
     console.error('Error in generate-workout function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: 'Failed to generate workout. Please try again.',
+      details: error.message 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -170,15 +205,44 @@ function createFallbackWorkout(sport: string, sessionType: string, workoutType: 
   const fallbackTitle = sport ? `${sport} ${sessionType} Session` : `${workoutType} Workout`;
   return {
     title: fallbackTitle,
-    duration: duration,
-    sport: sport,
-    type: sessionType,
-    warmup: ["Dynamic warm-up", "Joint mobility", "Light movement preparation"],
-    exercises: [
-      { name: "Main Exercise 1", sets: 3, reps: "8-12", rest: "60s", description: "Primary movement pattern", sportSpecific: !!sport },
-      { name: "Main Exercise 2", sets: 3, reps: "10-15", rest: "60s", description: "Secondary movement", sportSpecific: !!sport },
-      { name: "Main Exercise 3", sets: 3, reps: "30s", rest: "45s", description: "Conditioning element", sportSpecific: !!sport }
+    duration: duration || 30,
+    sport: sport || 'general',
+    type: sessionType || workoutType || 'general',
+    warmup: [
+      "5 minutes light cardio",
+      "Dynamic stretching",
+      "Joint mobility exercises"
     ],
-    cooldown: ["Static stretching", "Deep breathing", "Recovery"]
+    exercises: [
+      { 
+        name: "Push-ups", 
+        sets: 3, 
+        reps: "8-12", 
+        rest: "60s", 
+        description: "Upper body strength exercise",
+        sportSpecific: !!sport 
+      },
+      { 
+        name: "Bodyweight squats", 
+        sets: 3, 
+        reps: "12-15", 
+        rest: "60s", 
+        description: "Lower body strength exercise",
+        sportSpecific: !!sport 
+      },
+      { 
+        name: "Plank", 
+        sets: 3, 
+        reps: "30-60s", 
+        rest: "45s", 
+        description: "Core stability exercise",
+        sportSpecific: !!sport 
+      }
+    ],
+    cooldown: [
+      "Static stretching",
+      "Deep breathing exercises",
+      "Gentle mobility work"
+    ]
   };
 }
