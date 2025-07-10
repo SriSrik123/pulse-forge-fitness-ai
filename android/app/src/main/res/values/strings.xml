@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PulseTrack</string>
+    <string name="title_activity_main">PulseTrack</string>
+    <string name="package_name">app.lovable.a0147a6942cb4db7a4a4a13287c24c96</string>
+    <string name="custom_url_scheme">app.lovable.a0147a6942cb4db7a4a4a13287c24c96</string>
+</resources>
