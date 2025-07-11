@@ -12,6 +12,7 @@ import { WorkoutGenerator } from "./components/WorkoutGenerator"
 import { Workouts } from "./components/Workouts"
 import { Profile } from "./components/Profile"
 import { Settings } from "./components/Settings"
+import { FitnessData } from "./components/FitnessData"
 import { Auth } from "./components/Auth"
 import { OnboardingSurvey } from "./components/OnboardingSurvey"
 import { useOnboarding } from "./hooks/useOnboarding"
@@ -50,6 +51,8 @@ function AppContent() {
         return <Workouts />
       case 'generate':
         return <WorkoutGenerator />
+      case 'fitness-data':
+        return <FitnessData />
       case 'profile':
         return <Profile />
       case 'settings':

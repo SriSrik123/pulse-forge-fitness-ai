@@ -1,5 +1,5 @@
 
-import { Home, Activity, User, Settings, Plus } from "lucide-react"
+import { Home, Activity, User, Settings, Plus, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "./ThemeToggle"
 
@@ -13,6 +13,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
     { id: 'dashboard', icon: Home, label: 'Home' },
     { id: 'workouts', icon: Activity, label: 'Workouts' },
     { id: 'generate', icon: Plus, label: 'Generate' },
+    { id: 'fitness-data', icon: BarChart3, label: 'Data' },
     { id: 'profile', icon: User, label: 'Profile' },
     { id: 'settings', icon: Settings, label: 'Settings' },
   ]
