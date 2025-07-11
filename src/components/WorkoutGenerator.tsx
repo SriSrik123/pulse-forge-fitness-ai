@@ -87,6 +87,21 @@ export function WorkoutGenerator() {
     }
   }
 
+  const getEquipmentForSport = (sport: string) => {
+    const equipmentMap: Record<string, string[]> = {
+      swimming: ["Kickboard", "Pull Buoy", "Fins", "Paddles", "Snorkel", "Resistance Bands", "Pool Noodle"],
+      running: ["Running Shoes", "Heart Rate Monitor", "Resistance Bands", "Foam Roller", "Water Bottle", "GPS Watch"],
+      cycling: ["Bike", "Helmet", "Water Bottle", "Bike Computer", "Repair Kit", "Resistance Trainer"],
+      basketball: ["Basketball", "Resistance Bands", "Agility Ladder", "Cones", "Jump Rope", "Medicine Ball"],
+      soccer: ["Soccer Ball", "Cones", "Agility Ladder", "Resistance Bands", "Goal", "Cleats"],
+      tennis: ["Tennis Racket", "Tennis Balls", "Resistance Bands", "Agility Ladder", "Cones", "Medicine Ball"],
+      weightlifting: ["Dumbbells", "Barbell", "Weight Plates", "Bench", "Squat Rack", "Resistance Bands", "Kettlebells"],
+      yoga: ["Yoga Mat", "Yoga Blocks", "Yoga Strap", "Bolster", "Meditation Cushion", "Resistance Bands"],
+      default: ["Resistance Bands", "Dumbbells", "Medicine Ball", "Foam Roller", "Exercise Mat", "Water Bottle"]
+    }
+    return equipmentMap[sport] || equipmentMap.default
+  }
+
   const selectEquipment = (equipment: string) => {
 		setEquipmentList((prevEquipment) =>
 			prevEquipment.includes(equipment)
@@ -283,16 +298,7 @@ export function WorkoutGenerator() {
 					<div>
 						<h3 className="text-sm font-medium">Equipment</h3>
 						<div className="flex flex-wrap gap-2 mt-2">
-							{[
-								"Resistance Bands",
-								"Dumbbells",
-								"Kettlebells",
-								"Barbell",
-								"Pull-up Bar",
-								"Medicine Ball",
-								"Bosu Ball",
-								"Foam Roller",
-							].map((equipment) => (
+							{getEquipmentForSport(selectedSport).map((equipment) => (
 								<Badge
 									key={equipment}
 									variant={equipmentList.includes(equipment) ? "default" : "outline"}

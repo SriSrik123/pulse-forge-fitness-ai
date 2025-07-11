@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useTheme } from "./ThemeProvider"
 import { useAuth } from "@/hooks/useAuth"
 import { useSportProfile } from "@/hooks/useSportProfile"
-import { FitnessDataIntegration } from "./FitnessDataIntegration"
+import { FitnessIntegration } from "./FitnessIntegration"
 import { useOnboarding } from "@/hooks/useOnboarding"
 import {
   AlertDialog,
@@ -268,7 +268,7 @@ export function Settings() {
         </TabsContent>
 
         <TabsContent value="fitness">
-          <FitnessDataIntegration />
+          <FitnessIntegration />
         </TabsContent>
 
         <TabsContent value="account" className="space-y-4">

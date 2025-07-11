@@ -41,23 +41,6 @@ export function Dashboard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="glass border-0">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-pulse-blue">4</div>
-            <div className="text-xs text-muted-foreground">This Week</div>
-            <div className="text-sm">Sessions</div>
-          </CardContent>
-        </Card>
-        <Card className="glass border-0">
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-pulse-green">12</div>
-            <div className="text-xs text-muted-foreground">Day Streak</div>
-            <div className="text-sm">Consistency</div>
-          </CardContent>
-        </Card>
-      </div>
-
       <Card className="glass border-0">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -69,11 +52,11 @@ export function Dashboard() {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Sessions Completed</span>
-              <span>4 / {profile.trainingFrequency}</span>
+              <span>0 / {profile.trainingFrequency}</span>
             </div>
-            <Progress value={(4 / profile.trainingFrequency) * 100} className="h-2" />
+            <Progress value={0} className="h-2" />
             <p className="text-xs text-muted-foreground">
-              {profile.trainingFrequency - 4} more sessions to reach your weekly goal
+              Complete your first workout to start tracking progress
             </p>
           </div>
         </CardContent>
@@ -118,40 +101,17 @@ export function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {[
-              { 
-                date: "Today", 
-                activity: `Generated ${sportInfo.label} technique session`, 
-                time: "2 hours ago",
-                type: "training"
-              },
-              { 
-                date: "Yesterday", 
-                activity: `Completed supplementary gym workout`, 
-                time: "1 day ago",
-                type: "supplement"
-              },
-              { 
-                date: "Dec 3", 
-                activity: `${sportInfo.label} endurance session`, 
-                time: "2 days ago",
-                type: "training"
-              },
-            ].map((item, index) => (
-              <div key={index} className="flex justify-between items-center p-2 rounded-lg bg-muted/20">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${
-                    item.type === 'training' ? 'bg-pulse-blue' : 'bg-pulse-green'
-                  }`} />
-                  <div>
-                    <div className="font-medium text-sm">{item.activity}</div>
-                    <div className="text-xs text-muted-foreground">{item.time}</div>
-                  </div>
-                </div>
-                <div className="text-xs text-muted-foreground">{item.date}</div>
-              </div>
-            ))}
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/30 flex items-center justify-center">
+              <Calendar className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium mb-2">No Activity Yet</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Start your first workout to see your activity history here
+            </p>
+            <Button size="sm" variant="outline">
+              Generate First Workout
+            </Button>
           </div>
         </CardContent>
       </Card>

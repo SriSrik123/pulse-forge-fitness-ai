@@ -24,6 +24,7 @@ const SPORTS = [
 ]
 
 const GOALS = [
+  { value: "be_better_at_sport", label: "Be Better at Sport", icon: "🏆" },
   { value: "weight_loss", label: "Weight Loss", icon: "📉" },
   { value: "muscle_gain", label: "Muscle Gain", icon: "💪" },
   { value: "endurance", label: "Endurance", icon: "🏃" },
