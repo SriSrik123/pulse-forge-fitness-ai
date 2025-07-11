@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "app.lovable.a0147a6942cb4db7a4a4a13287c24c96"
+    namespace "com.yourcompany.pulsetrack"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "app.lovable.a0147a6942cb4db7a4a4a13287c24c96"
+        applicationId "com.yourcompany.pulsetrack"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

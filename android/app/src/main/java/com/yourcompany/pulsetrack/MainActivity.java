@@ -1,4 +1,4 @@
-package app.lovable.a0147a6942cb4db7a4a4a13287c24c96;
+package com.yourcompany.pulsetrack;
 
 import com.getcapacitor.BridgeActivity;
 
