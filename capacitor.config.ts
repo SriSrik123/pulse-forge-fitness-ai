@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.yourcompany.pulsetrack', // <--- Change this to your desired ID
+  appId: 'com.yourcompany.pulsetrack',
   appName: 'PulseTrack',
   webDir: 'dist',
   plugins: {
