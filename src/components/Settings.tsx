@@ -8,11 +8,12 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Shield, Bell, Smartphone, Activity, Target, LogOut, RotateCcw, AlertTriangle } from "lucide-react"
+import { Shield, Bell, Smartphone, Activity, Target, LogOut, RotateCcw, AlertTriangle, Clock } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useTheme } from "./ThemeProvider"
 import { useAuth } from "@/hooks/useAuth"
 import { useSportProfile } from "@/hooks/useSportProfile"
+import { supabase } from "@/integrations/supabase/client"
 import { FitnessIntegration } from "./FitnessIntegration"
 import { TestDailyGeneration } from "./TestDailyGeneration"
 import { useOnboarding } from "@/hooks/useOnboarding"
@@ -54,6 +55,17 @@ export function Settings() {
   const [trainingFrequency, setTrainingFrequency] = useState([3])
   const [sessionDuration, setSessionDuration] = useState([60])
   const [currentGoals, setCurrentGoals] = useState("")
+  
+  // Notification preferences
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    workout_reminders: true,
+    achievement_alerts: true,
+    progress_updates: true,
+    rest_day_reminders: true,
+    reminder_time: "09:00",
+    frequency: "daily"
+  })
+  
   const { theme, setTheme } = useTheme()
   const { toast } = useToast()
   const { user, signOut } = useAuth()
@@ -76,7 +88,56 @@ export function Settings() {
     if (savedSmartwatchSetting) {
       setSmartwatchEnabled(JSON.parse(savedSmartwatchSetting))
     }
+    
+    // Load notification preferences from user profile
+    loadNotificationPreferences()
   }, [profile])
+
+  const loadNotificationPreferences = async () => {
+    if (!user) return
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('notification_preferences')
+        .eq('id', user.id)
+        .single()
+      
+      if (error) throw error
+      
+      if (data?.notification_preferences && typeof data.notification_preferences === 'object') {
+        setNotificationPrefs(prev => ({ ...prev, ...data.notification_preferences as object }))
+      }
+    } catch (error) {
+      console.error('Error loading notification preferences:', error)
+    }
+  }
+
+  const saveNotificationPreferences = async (newPrefs: any) => {
+    if (!user) return
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ notification_preferences: newPrefs })
+        .eq('id', user.id)
+      
+      if (error) throw error
+      
+      setNotificationPrefs(newPrefs)
+      toast({
+        title: "Notification Settings Saved",
+        description: "Your notification preferences have been updated."
+      })
+    } catch (error) {
+      console.error('Error saving notification preferences:', error)
+      toast({
+        title: "Error",
+        description: "Failed to save notification preferences",
+        variant: "destructive"
+      })
+    }
+  }
 
   const saveSportProfile = async () => {
     const success = await saveProfile({
@@ -280,8 +341,93 @@ export function Settings() {
                     Get notified about your scheduled workouts
                   </p>
                 </div>
-                <Switch checked={notifications} onCheckedChange={setNotifications} />
+                <Switch 
+                  checked={notificationPrefs.workout_reminders} 
+                  onCheckedChange={(checked) => 
+                    saveNotificationPreferences({ ...notificationPrefs, workout_reminders: checked })
+                  } 
+                />
               </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Achievement Alerts</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Get notified when you earn new achievements
+                  </p>
+                </div>
+                <Switch 
+                  checked={notificationPrefs.achievement_alerts} 
+                  onCheckedChange={(checked) => 
+                    saveNotificationPreferences({ ...notificationPrefs, achievement_alerts: checked })
+                  } 
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Progress Updates</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Weekly progress summaries and milestone notifications
+                  </p>
+                </div>
+                <Switch 
+                  checked={notificationPrefs.progress_updates} 
+                  onCheckedChange={(checked) => 
+                    saveNotificationPreferences({ ...notificationPrefs, progress_updates: checked })
+                  } 
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Rest Day Reminders</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Reminders to take rest days for recovery
+                  </p>
+                </div>
+                <Switch 
+                  checked={notificationPrefs.rest_day_reminders} 
+                  onCheckedChange={(checked) => 
+                    saveNotificationPreferences({ ...notificationPrefs, rest_day_reminders: checked })
+                  } 
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Reminder Time
+                </Label>
+                <Input
+                  type="time"
+                  value={notificationPrefs.reminder_time}
+                  onChange={(e) => 
+                    saveNotificationPreferences({ ...notificationPrefs, reminder_time: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Frequency</Label>
+                <Select 
+                  value={notificationPrefs.frequency} 
+                  onValueChange={(value) => 
+                    saveNotificationPreferences({ ...notificationPrefs, frequency: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Separator />
               
               <div className="flex items-center justify-between">
                 <div>

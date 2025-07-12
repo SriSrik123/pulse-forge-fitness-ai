@@ -44,6 +44,41 @@ export type Database = {
         }
         Relationships: []
       }
+      coaching_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          is_user: boolean
+          message: string
+          user_id: string
+          workout_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_user?: boolean
+          message: string
+          user_id: string
+          workout_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_user?: boolean
+          message?: string
+          user_id?: string
+          workout_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coaching_conversations_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       friends: {
         Row: {
           created_at: string
@@ -78,6 +113,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          notification_preferences: Json | null
           onboarding_completed: boolean | null
           preferences: Json | null
           updated_at: string
@@ -89,6 +125,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          notification_preferences?: Json | null
           onboarding_completed?: boolean | null
           preferences?: Json | null
           updated_at?: string
@@ -100,6 +137,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          notification_preferences?: Json | null
           onboarding_completed?: boolean | null
           preferences?: Json | null
           updated_at?: string
@@ -342,6 +380,65 @@ export type Database = {
           workout_id?: string | null
         }
         Relationships: []
+      }
+      workout_performance: {
+        Row: {
+          created_at: string
+          distance: number | null
+          exercise_name: string
+          id: string
+          metric_type: string
+          notes: string | null
+          reps: number | null
+          sets: number | null
+          time_seconds: number | null
+          unit: string | null
+          updated_at: string
+          user_id: string
+          value: number | null
+          workout_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          distance?: number | null
+          exercise_name: string
+          id?: string
+          metric_type: string
+          notes?: string | null
+          reps?: number | null
+          sets?: number | null
+          time_seconds?: number | null
+          unit?: string | null
+          updated_at?: string
+          user_id: string
+          value?: number | null
+          workout_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          distance?: number | null
+          exercise_name?: string
+          id?: string
+          metric_type?: string
+          notes?: string | null
+          reps?: number | null
+          sets?: number | null
+          time_seconds?: number | null
+          unit?: string | null
+          updated_at?: string
+          user_id?: string
+          value?: number | null
+          workout_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_performance_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workout_plan_preferences: {
         Row: {

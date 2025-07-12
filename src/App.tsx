@@ -13,6 +13,8 @@ import { Workouts } from "./components/Workouts"
 import { Friends } from "./components/Friends"
 import { Profile } from "./components/Profile"
 import { Achievements } from "./components/Achievements"
+import { Coaching } from "./components/Coaching"
+import { ProgressAnalytics } from "./components/ProgressAnalytics"
 import { Settings } from "./components/Settings"
 import { FitnessData } from "./components/FitnessData"
 import { Auth } from "./components/Auth"
@@ -67,6 +69,10 @@ function AppContent() {
         return <Dashboard onTabChange={handleTabChange} />
       case 'workouts':
         return <Workouts workoutType={workoutType} />
+      case 'coaching':
+        return <Coaching />
+      case 'analytics':
+        return <ProgressAnalytics />
       case 'friends':
         return <Friends />
       case 'generate':

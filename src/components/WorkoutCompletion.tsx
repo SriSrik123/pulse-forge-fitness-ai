@@ -8,6 +8,7 @@ import { CheckCircle, BookOpen } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
+import { PerformanceTracker } from "./PerformanceTracker"
 
 interface WorkoutCompletionProps {
   workout: any
@@ -28,6 +29,7 @@ export function WorkoutCompletion({ workout, onComplete }: WorkoutCompletionProp
   const [journalEntry, setJournalEntry] = useState("")
   const [selectedFeeling, setSelectedFeeling] = useState("")
   const [isCompleting, setIsCompleting] = useState(false)
+  const [showPerformanceTracker, setShowPerformanceTracker] = useState(true)
 
   const handleComplete = async () => {
     if (!user) return
@@ -66,63 +68,79 @@ export function WorkoutCompletion({ workout, onComplete }: WorkoutCompletionProp
   }
 
   return (
-    <Card className="glass border-0">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CheckCircle className="h-5 w-5 text-pulse-green" />
-          Complete Workout
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>How did you feel during this workout?</Label>
-          <div className="flex justify-between gap-2">
-            {feelingEmojis.map((feeling) => (
-              <button
-                key={feeling.emoji}
-                onClick={() => setSelectedFeeling(feeling.emoji)}
-                className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all hover:bg-muted/50 ${
-                  selectedFeeling === feeling.emoji
-                    ? 'border-pulse-blue bg-pulse-blue/10'
-                    : 'border-border'
-                }`}
-              >
-                <span className="text-2xl mb-1">{feeling.emoji}</span>
-                <span className="text-xs text-muted-foreground">{feeling.label}</span>
-              </button>
-            ))}
+    <div className="space-y-6">
+      {/* Performance Tracking */}
+      {showPerformanceTracker && (
+        <PerformanceTracker
+          workoutId={workout.id}
+          onPerformanceAdded={() => {
+            toast({
+              title: "Performance Saved",
+              description: "Your workout performance has been recorded"
+            })
+          }}
+        />
+      )}
+
+      {/* Completion Form */}
+      <Card className="glass border-0">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-pulse-green" />
+            Complete Workout
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>How did you feel during this workout?</Label>
+            <div className="flex justify-between gap-2">
+              {feelingEmojis.map((feeling) => (
+                <button
+                  key={feeling.emoji}
+                  onClick={() => setSelectedFeeling(feeling.emoji)}
+                  className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all hover:bg-muted/50 ${
+                    selectedFeeling === feeling.emoji
+                      ? 'border-pulse-blue bg-pulse-blue/10'
+                      : 'border-border'
+                  }`}
+                >
+                  <span className="text-2xl mb-1">{feeling.emoji}</span>
+                  <span className="text-xs text-muted-foreground">{feeling.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="journal">Journal Entry (Optional)</Label>
-          <Textarea
-            id="journal"
-            placeholder="How was your workout? Any notes about your performance, technique, or goals..."
-            value={journalEntry}
-            onChange={(e) => setJournalEntry(e.target.value)}
-            className="min-h-[100px]"
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="journal">Journal Entry (Optional)</Label>
+            <Textarea
+              id="journal"
+              placeholder="How was your workout? Any notes about your performance, technique, or goals..."
+              value={journalEntry}
+              onChange={(e) => setJournalEntry(e.target.value)}
+              className="min-h-[100px]"
+            />
+          </div>
 
-        <Button 
-          onClick={handleComplete}
-          disabled={isCompleting}
-          className="w-full pulse-gradient text-white font-semibold"
-        >
-          {isCompleting ? (
-            <>
-              <CheckCircle className="mr-2 h-4 w-4 animate-pulse" />
-              Completing...
-            </>
-          ) : (
-            <>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Mark as Done
-            </>
-          )}
-        </Button>
-      </CardContent>
-    </Card>
+          <Button 
+            onClick={handleComplete}
+            disabled={isCompleting}
+            className="w-full pulse-gradient text-white font-semibold"
+          >
+            {isCompleting ? (
+              <>
+                <CheckCircle className="mr-2 h-4 w-4 animate-pulse" />
+                Completing...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Mark as Done
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
