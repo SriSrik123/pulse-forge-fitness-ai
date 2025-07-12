@@ -57,14 +57,22 @@ export function WorkoutViewer({ workoutType }: WorkoutViewerProps = {}) {
     try {
       const today = new Date().toISOString().split('T')[0]
       
+      // Determine the workout type mapping
+      const workoutTypeForQuery = workoutType === 'strength' ? 'strength' : 
+                                 workoutType === 'training' ? 'training' : 'training'
+      
+      console.log('Loading workout for type:', workoutType, 'mapped to:', workoutTypeForQuery)
+      
       // First try to get scheduled workout for today
       const { data: scheduledWorkout } = await supabase
         .from('scheduled_workouts')
         .select('*')
         .eq('user_id', user.id)
         .eq('scheduled_date', today)
-        .eq('workout_type', workoutType === 'strength' ? 'strength' : 'training')
-        .single()
+        .eq('workout_type', workoutTypeForQuery)
+        .maybeSingle()
+
+      console.log('Found scheduled workout:', scheduledWorkout)
 
       if (scheduledWorkout) {
         // Generate the actual workout content
@@ -83,8 +91,11 @@ export function WorkoutViewer({ workoutType }: WorkoutViewerProps = {}) {
 
   const generateWorkoutFromScheduled = async (scheduledWorkout: any) => {
     try {
-      const sport = workoutType === 'strength' ? 'weightlifting' : profile.primarySport
-      const sessionType = workoutType === 'strength' ? 'strength' : 'training'
+      // Use the scheduled workout's sport and type directly
+      const sport = scheduledWorkout.sport
+      const sessionType = scheduledWorkout.workout_type
+      
+      console.log('Generating workout from scheduled:', { sport, sessionType, scheduledWorkout })
       
       // Get previous workouts for context
       const { data: previousWorkouts } = await supabase

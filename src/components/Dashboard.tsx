@@ -76,7 +76,7 @@ export function Dashboard({ onTabChange }: DashboardProps) {
         <CardContent className="space-y-3">
           <div 
             className="flex items-center justify-between p-3 rounded-lg bg-pulse-blue/10 border border-pulse-blue/20 cursor-pointer hover:bg-pulse-blue/20 transition-colors"
-            onClick={() => onTabChange?.('workouts', 'sport')}
+            onClick={() => onTabChange?.('workouts', 'training')}
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-pulse-blue/20 flex items-center justify-center">

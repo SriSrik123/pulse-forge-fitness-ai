@@ -53,46 +53,23 @@ serve(async (req) => {
           .eq('user_id', profile.user_id)
           .eq('scheduled_date', today)
 
-        if (existingWorkouts && existingWorkouts.length > 0) {
+        if (existingWorkouts && existingWorkouts.length >= 2) {
           console.log(`Workouts already exist for user ${profile.user_id} for ${today}`);
           continue;
         }
 
-        // Get user's recent workouts for context
-        const { data: recentWorkouts } = await supabaseClient
-          .from('workouts')
-          .select('*')
+        // Delete any existing workouts for today to regenerate
+        await supabaseClient
+          .from('scheduled_workouts')
+          .delete()
           .eq('user_id', profile.user_id)
-          .order('created_at', { ascending: false })
-          .limit(5)
+          .eq('scheduled_date', today)
 
-        // Generate sport-specific workout
-        const sportWorkout = await generateWorkout({
-          geminiApiKey,
-          sport: profile.primary_sport,
-          sessionType: 'training',
-          fitnessLevel: profile.experience_level,
-          duration: profile.session_duration,
-          goals: profile.current_goals || `Improve ${profile.primary_sport} performance`,
-          previousWorkouts: recentWorkouts || []
-        });
-
-        // Generate strength workout
-        const strengthWorkout = await generateWorkout({
-          geminiApiKey,
-          sport: 'weightlifting',
-          sessionType: 'strength',
-          fitnessLevel: profile.experience_level,
-          duration: 45,
-          goals: `Strength training to complement ${profile.primary_sport}`,
-          previousWorkouts: recentWorkouts?.filter(w => w.sport === 'weightlifting') || []
-        });
-
-        // Save both workouts to scheduled_workouts
+        // Create both swimming and strength workouts for today
         const workoutsToSchedule = [
           {
             user_id: profile.user_id,
-            title: sportWorkout.title,
+            title: `${profile.primary_sport.charAt(0).toUpperCase() + profile.primary_sport.slice(1)} Training Session`,
             sport: profile.primary_sport,
             workout_type: 'training',
             scheduled_date: today,
@@ -102,7 +79,7 @@ serve(async (req) => {
           },
           {
             user_id: profile.user_id,
-            title: strengthWorkout.title,
+            title: 'Strength Training Session',
             sport: 'weightlifting',
             workout_type: 'strength',
             scheduled_date: today,
@@ -121,8 +98,12 @@ serve(async (req) => {
         } else {
           workoutsGenerated.push({
             userId: profile.user_id,
-            workouts: [sportWorkout.title, strengthWorkout.title]
+            workouts: [
+              `${profile.primary_sport.charAt(0).toUpperCase() + profile.primary_sport.slice(1)} Training Session`,
+              'Strength Training Session'
+            ]
           });
+          console.log(`Generated workouts for user ${profile.user_id}: ${profile.primary_sport} + strength`);
         }
 
       } catch (error) {

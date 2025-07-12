@@ -14,6 +14,7 @@ import { useTheme } from "./ThemeProvider"
 import { useAuth } from "@/hooks/useAuth"
 import { useSportProfile } from "@/hooks/useSportProfile"
 import { FitnessIntegration } from "./FitnessIntegration"
+import { TestDailyGeneration } from "./TestDailyGeneration"
 import { useOnboarding } from "@/hooks/useOnboarding"
 import {
   AlertDialog,
@@ -293,6 +294,8 @@ export function Settings() {
               </div>
             </CardContent>
           </Card>
+          
+          <TestDailyGeneration />
         </TabsContent>
 
         <TabsContent value="fitness">
