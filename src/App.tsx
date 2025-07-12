@@ -74,7 +74,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-background/80">
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <Navigation activeTab={activeTab} onTabChange={handleTabChange} />
       
       <main className="pt-20 pb-20 px-4 max-w-md mx-auto">
         {renderContent()}
