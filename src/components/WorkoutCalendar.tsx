@@ -753,7 +753,7 @@ export function WorkoutCalendar() {
 
       {/* Workout Details Dialog */}
       <Dialog open={showWorkoutDialog} onOpenChange={setShowWorkoutDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto glass border-0">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
@@ -807,9 +807,7 @@ export function WorkoutCalendar() {
                     {selectedWorkout.journal_entry && (
                       <div>
                         <h4 className="font-medium mb-2">Journal Entry:</h4>
-                        <p className="text-sm italic bg-white p-3 rounded border">
-                          "{selectedWorkout.journal_entry}"
-                        </p>
+                        <p className="text-sm italic bg-muted/50 p-3 rounded border">{selectedWorkout.journal_entry}"</p>
                       </div>
                     )}
                   </CardContent>
@@ -821,7 +819,7 @@ export function WorkoutCalendar() {
                 <div className="space-y-4">
                   {/* Warmup */}
                   {selectedWorkout.exercises.warmup && Array.isArray(selectedWorkout.exercises.warmup) && (
-                    <Card className="border-0 bg-orange-50/50">
+                    <Card className="border-0 bg-orange-500/10">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-base flex items-center gap-2">
                           <Target className="h-4 w-4" />
@@ -845,7 +843,7 @@ export function WorkoutCalendar() {
 
                   {/* Main Exercises */}
                   {selectedWorkout.exercises.exercises && Array.isArray(selectedWorkout.exercises.exercises) && (
-                    <Card className="border-0 bg-pulse-blue/5">
+                    <Card className="border-0 bg-primary/10">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-base flex items-center gap-2">
                           <Zap className="h-4 w-4" />
@@ -855,7 +853,7 @@ export function WorkoutCalendar() {
                       <CardContent className="pt-0">
                         <div className="space-y-4">
                           {selectedWorkout.exercises.exercises.map((exercise: any, index: number) => (
-                            <div key={index} className="p-3 bg-white rounded border">
+                            <div key={index} className="p-3 bg-muted/50 rounded border">
                               <h5 className="font-medium mb-1">{exercise.name}</h5>
                               <p className="text-sm text-muted-foreground mb-2">
                                 {exercise.sets} sets × {exercise.reps} reps
@@ -875,7 +873,7 @@ export function WorkoutCalendar() {
 
                   {/* Cooldown */}
                   {selectedWorkout.exercises.cooldown && Array.isArray(selectedWorkout.exercises.cooldown) && (
-                    <Card className="border-0 bg-blue-50/50">
+                    <Card className="border-0 bg-blue-500/10">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-base flex items-center gap-2">
                           <Activity className="h-4 w-4" />
