@@ -389,10 +389,10 @@ export function WorkoutCalendar() {
       <div className="text-center py-4">
         <div className="flex items-center justify-center gap-2 mb-2">
           <CalendarIcon className="h-6 w-6" />
-          <h2 className="text-2xl font-bold">Calendar & History</h2>
+          <h2 className="text-2xl font-bold">Calendar</h2>
         </div>
         <p className="text-muted-foreground">
-          View and manage your scheduled workouts and training history
+          View and manage your scheduled workouts and see your training history
         </p>
       </div>
 
@@ -400,7 +400,7 @@ export function WorkoutCalendar() {
         <TabsList className="grid w-full grid-cols-1">
           <TabsTrigger value="calendar" className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4" />
-            Calendar & History
+            Calendar
           </TabsTrigger>
         </TabsList>
 
@@ -600,7 +600,7 @@ export function WorkoutCalendar() {
         </CardContent>
       </Card>
 
-      {selectedDate && (selectedDateWorkouts.length > 0 || selectedDateEvents.length > 0) && (
+      {selectedDate && (selectedDateCompletedWorkouts.length > 0 || selectedDateWorkouts.length > 0 || selectedDateEvents.length > 0) && (
         <Card className="glass border-0">
           <CardHeader>
             <CardTitle>
@@ -713,11 +713,20 @@ export function WorkoutCalendar() {
                               {workout.duration && ` • ${workout.duration} min`}
                             </p>
                           </div>
-                          {workout.feeling && (
-                            <Badge variant="outline" className="bg-white">
-                              {workout.feeling}
-                            </Badge>
-                          )}
+                         {workout.feeling && (
+                           <div className="flex items-center gap-2">
+                             <span className="text-2xl">
+                               {workout.feeling === 'very-bad' ? '😫' : 
+                                workout.feeling === 'bad' ? '😕' : 
+                                workout.feeling === 'okay' ? '😐' : 
+                                workout.feeling === 'good' ? '😊' : 
+                                workout.feeling === 'great' ? '🤩' : '😐'}
+                             </span>
+                             <Badge variant="outline" className="bg-white text-xs capitalize">
+                               {workout.feeling.replace('-', ' ')}
+                             </Badge>
+                           </div>
+                         )}
                         </div>
                         {workout.journal_entry && (
                           <div className="mt-2 p-2 bg-white rounded border">

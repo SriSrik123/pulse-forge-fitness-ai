@@ -113,7 +113,7 @@ export function Dashboard({ onTabChange }: DashboardProps) {
                 key={workout.id}
                 className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
                   isCompleted 
-                    ? 'bg-green-50 border-green-200 hover:bg-green-100' 
+                    ? 'bg-green-600/90 border-green-700 hover:bg-green-600 text-white' 
                     : workout.workout_type === 'training' 
                       ? 'bg-pulse-blue/10 border-pulse-blue/20 hover:bg-pulse-blue/20'
                       : 'bg-orange-500/10 border-orange-500/20 hover:bg-orange-500/20'
@@ -121,20 +121,20 @@ export function Dashboard({ onTabChange }: DashboardProps) {
                 onClick={() => onTabChange?.('workouts', workout.workout_type)}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    isCompleted 
-                      ? 'bg-green-200' 
-                      : workout.workout_type === 'training' 
-                        ? 'bg-pulse-blue/20' 
-                        : 'bg-orange-500/20'
-                  }`}>
-                    <Zap className={`h-5 w-5 ${
-                      isCompleted 
-                        ? 'text-green-600' 
-                        : workout.workout_type === 'training' 
-                          ? 'text-pulse-blue' 
-                          : 'text-orange-500'
-                    }`} />
+                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                     isCompleted 
+                       ? 'bg-green-800/20' 
+                       : workout.workout_type === 'training' 
+                         ? 'bg-pulse-blue/20' 
+                         : 'bg-orange-500/20'
+                   }`}>
+                     <Zap className={`h-5 w-5 ${
+                       isCompleted 
+                         ? 'text-green-100' 
+                         : workout.workout_type === 'training' 
+                           ? 'text-pulse-blue' 
+                           : 'text-orange-500'
+                     }`} />
                   </div>
                    <div>
                      <div className="font-medium">{workout.title}</div>
@@ -143,13 +143,13 @@ export function Dashboard({ onTabChange }: DashboardProps) {
                      </div>
                    </div>
                 </div>
-                <Badge className={
-                  isCompleted 
-                    ? 'bg-green-100 text-green-800 border-green-200'
-                    : workout.workout_type === 'training' 
-                      ? 'bg-pulse-blue/20 text-pulse-blue border-pulse-blue/30'
-                      : 'bg-orange-500/20 text-orange-500 border-orange-500/30'
-                }>
+                 <Badge className={
+                   isCompleted 
+                     ? 'bg-green-800/20 text-green-100 border-green-700/30'
+                     : workout.workout_type === 'training' 
+                       ? 'bg-pulse-blue/20 text-pulse-blue border-pulse-blue/30'
+                       : 'bg-orange-500/20 text-orange-500 border-orange-500/30'
+                 }>
                   {isCompleted ? 'Completed ✓' : 'Ready'}
                 </Badge>
               </div>
