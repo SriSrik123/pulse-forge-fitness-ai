@@ -21,7 +21,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
     <>
       {/* Top Navigation Bar */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-4 py-3 pt-safe-area-inset-top md:pt-3">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-full pulse-gradient flex items-center justify-center">
               <Activity className="h-4 w-4 text-white" />
