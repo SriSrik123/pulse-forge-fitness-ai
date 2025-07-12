@@ -46,6 +46,7 @@ interface SurveyData {
     sportSpecificStats: string
   }
   intensityPreference: number
+  poolSize?: string
 }
 
 interface OnboardingSurveyProps {
@@ -66,7 +67,8 @@ export function OnboardingSurvey({ onComplete }: OnboardingSurveyProps) {
       weight: "",
       sportSpecificStats: ""
     },
-    intensityPreference: 5
+    intensityPreference: 5,
+    poolSize: ""
   })
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
@@ -131,7 +133,8 @@ export function OnboardingSurvey({ onComplete }: OnboardingSurveyProps) {
           preferences: {
             wantsSupplementalLifting: surveyData.wantsSupplementalLifting,
             intensityPreference: surveyData.intensityPreference,
-            stats: surveyData.currentStats
+            stats: surveyData.currentStats,
+            poolSize: surveyData.poolSize
           }
         })
         .eq('id', user.id)
@@ -349,6 +352,40 @@ export function OnboardingSurvey({ onComplete }: OnboardingSurveyProps) {
                   Share any relevant performance metrics for your sport
                 </p>
               </div>
+
+              {(surveyData.primarySport === 'swimming' || surveyData.primarySport === 'running') && (
+                <div className="space-y-2">
+                  <Label>
+                    {surveyData.primarySport === 'swimming' ? 'Pool Size' : 'Track Length'}
+                  </Label>
+                  <Select value={surveyData.poolSize} onValueChange={(value) => 
+                    setSurveyData(prev => ({ ...prev, poolSize: value }))
+                  }>
+                    <SelectTrigger>
+                      <SelectValue placeholder={
+                        surveyData.primarySport === 'swimming' 
+                          ? "Select pool size" 
+                          : "Select track length"
+                      } />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {surveyData.primarySport === 'swimming' ? (
+                        <>
+                          <SelectItem value="25m">25 meters</SelectItem>
+                          <SelectItem value="25y">25 yards</SelectItem>
+                          <SelectItem value="50m">50 meters</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value="400m">400 meters</SelectItem>
+                          <SelectItem value="200m">200 meters</SelectItem>
+                          <SelectItem value="indoor">Indoor track</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           </div>
         )

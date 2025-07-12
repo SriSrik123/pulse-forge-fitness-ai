@@ -94,9 +94,36 @@ Please incorporate these preferences into the workout design.
     
     if (sport && sessionType) {
       const availableEquipment = sportEquipmentList?.join(", ") || "basic equipment";
+      
+      let sportSpecificInstructions = "";
+      if (sport === 'swimming') {
+        sportSpecificInstructions = `
+        
+SWIMMING SPECIFIC REQUIREMENTS:
+- Use proper swimming notation (e.g., "4x50 freestyle" instead of "4 sets of 50m freestyle")
+- Include interval times based on fitness level:
+  * Beginner: Easy pace with long rest (e.g., 4x50 free on 1:30)
+  * Intermediate: Moderate pace (e.g., 6x50 free on 1:15) 
+  * Advanced: Faster pace with shorter rest (e.g., 8x50 free on 1:00)
+- Include stroke variety (freestyle, backstroke, breaststroke, butterfly)
+- Format sets clearly: "8x25 freestyle on :45" or "4x100 IM on 2:30"
+        `;
+      } else if (sport === 'running') {
+        sportSpecificInstructions = `
+        
+RUNNING SPECIFIC REQUIREMENTS:
+- Use running notation (e.g., "6x400m" instead of "6 sets of 400m")
+- Include pace targets and recovery times based on fitness level:
+  * Beginner: Easy pace with full recovery
+  * Intermediate: Moderate effort with 90s-2min recovery
+  * Advanced: Faster paces with 60-90s recovery
+- Format clearly: "6x400m at 5K pace, 90s recovery"
+        `;
+      }
+      
       prompt = `Generate a ${duration}-minute ${sport} ${sessionType} session for a ${fitnessLevel} level athlete.
       Available equipment: ${availableEquipment}.
-      Goals: ${goals || `improve ${sport} performance`}.${workoutHistory}${preferencesContext}
+      Goals: ${goals || `improve ${sport} performance`}.${workoutHistory}${preferencesContext}${sportSpecificInstructions}
       
       Please provide a structured ${sessionType} plan with:
       1. Warm-up (5-10 minutes)
