@@ -9,8 +9,6 @@ import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { useSportProfile } from "@/hooks/useSportProfile"
 import { useToast } from "@/hooks/use-toast"
-import { useSearchParams } from "react-router-dom"
-
 interface Exercise {
   name: string
   sets: string
@@ -32,12 +30,10 @@ interface WorkoutViewerProps {
   workoutType?: string | null;
 }
 
-export function WorkoutViewer({ workoutType: propWorkoutType }: WorkoutViewerProps = {}) {
+export function WorkoutViewer({ workoutType }: WorkoutViewerProps = {}) {
   const { user } = useAuth()
   const { toast } = useToast()
   const { profile, getSportInfo } = useSportProfile()
-  const [searchParams] = useSearchParams()
-  const workoutType = propWorkoutType || searchParams.get('type')
   
   const [workout, setWorkout] = useState<WorkoutData | null>(null)
   const [loading, setLoading] = useState(true)
