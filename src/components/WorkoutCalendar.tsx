@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Play, X, Check, History, Plus, Trophy, Activity, Clock, Target, Zap, Eye } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Play, X, Check, History, Plus, Trophy, Activity, Clock, Target, Zap, Eye, Lock } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
@@ -334,6 +334,31 @@ export function WorkoutCalendar() {
     }
   }
 
+  const fetchWorkoutForScheduled = async (scheduledWorkout: ScheduledWorkout) => {
+    if (!scheduledWorkout.workout_id) return
+
+    try {
+      const { data: workout, error } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('id', scheduledWorkout.workout_id)
+        .single()
+
+      if (error) throw error
+
+      if (workout) {
+        setSelectedWorkout(workout)
+        setShowWorkoutDialog(true)
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to load workout details",
+        variant: "destructive"
+      })
+    }
+  }
+
   const createEvent = async () => {
     if (!user || !eventForm.title || !eventForm.sport || !eventForm.scheduled_date) {
       toast({
@@ -542,21 +567,26 @@ export function WorkoutCalendar() {
               const dayEvents = getEventsForDate(day)
               const isSelected = selectedDate && isSameDay(day, selectedDate)
               const isToday = isSameDay(day, new Date())
+              const isFuture = day > new Date()
               
               return (
                 <div
                   key={day.toISOString()}
                   className={`
-                    min-h-[80px] p-2 border rounded-lg cursor-pointer transition-all relative
+                    min-h-[80px] p-2 border rounded-lg transition-all relative
+                    ${isFuture ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
                     ${isSelected ? 'ring-2 ring-primary' : ''}
-                    ${isToday ? 'bg-primary/10' : 'hover:bg-muted/50'}
+                    ${isToday ? 'bg-primary/10' : !isFuture ? 'hover:bg-muted/50' : ''}
                     ${dayWorkouts.length > 0 && dayWorkouts.every(w => w.completed) ? 'bg-green-800/20 border-green-700/30' : ''}
                     ${dayEvents.length > 0 ? 'border-l-4 border-l-yellow-500' : ''}
                   `}
-                  onClick={() => setSelectedDate(day)}
+                  onClick={() => !isFuture && setSelectedDate(day)}
                 >
-                  <div className="text-sm font-medium mb-1">
-                    {format(day, 'd')}
+                  <div className="text-sm font-medium mb-1 flex items-center justify-between">
+                    <span>{format(day, 'd')}</span>
+                    {isFuture && dayWorkouts.length > 0 && (
+                      <Lock className="h-3 w-3 text-muted-foreground" />
+                    )}
                   </div>
                   <div className="space-y-1">
                      {dayEvents.slice(0, 1).map((event) => (
@@ -578,6 +608,8 @@ export function WorkoutCalendar() {
                              ? 'bg-green-500' 
                              : workout.skipped
                              ? 'bg-red-500'
+                             : isFuture
+                             ? 'bg-muted-foreground/50'
                              : workout.sport === 'weightlifting' || workout.sport === 'strength_training'
                              ? 'bg-orange-500'
                              : workout.sport === 'swimming'
@@ -667,15 +699,70 @@ export function WorkoutCalendar() {
                         </div>
                         
                         <div className="flex gap-2">
-                          {!workout.completed && !workout.skipped && (
+                          {!workout.completed && !workout.skipped && selectedDate && !isSameDay(selectedDate, new Date()) && selectedDate <= new Date() && (
                             <>
-                              {!workout.workout_id && (
+                              {!workout.workout_id ? (
                                 <Button
                                   size="sm"
                                   onClick={() => generateWorkoutForDay(workout)}
                                 >
                                   <Play className="h-4 w-4 mr-1" />
                                   Generate
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    // View existing generated workout
+                                    fetchWorkoutForScheduled(workout)
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => markWorkoutCompleted(workout.id)}
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => markWorkoutSkipped(workout.id)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                          {selectedDate && selectedDate > new Date() && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Lock className="h-4 w-4" />
+                              <span className="text-sm">Locked</span>
+                            </div>
+                          )}
+                          {selectedDate && isSameDay(selectedDate, new Date()) && !workout.completed && !workout.skipped && (
+                            <>
+                              {!workout.workout_id ? (
+                                <Button
+                                  size="sm"
+                                  onClick={() => generateWorkoutForDay(workout)}
+                                >
+                                  <Play className="h-4 w-4 mr-1" />
+                                  Generate
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    // View existing generated workout
+                                    fetchWorkoutForScheduled(workout)
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View
                                 </Button>
                               )}
                               <Button
