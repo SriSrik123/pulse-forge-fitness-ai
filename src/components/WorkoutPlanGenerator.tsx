@@ -393,22 +393,24 @@ export function WorkoutPlanGenerator() {
         </Card>
       ))}
 
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <Button
           variant="outline"
           onClick={addSportPreference}
-          className="flex-1"
+          className="flex-1 text-sm"
         >
           <Plus className="mr-2 h-4 w-4" />
-          Add Another Sport
+          <span className="hidden sm:inline">Add Another Sport</span>
+          <span className="sm:hidden">Add Sport</span>
         </Button>
         
         <Button
           onClick={generateMonthlyPlan}
-          className="flex-1 pulse-gradient text-white font-semibold"
+          className="flex-1 pulse-gradient text-white font-semibold text-sm"
           disabled={generating}
         >
-          {generating ? "Generating..." : "Generate Monthly Plan"}
+          <span className="hidden sm:inline">{generating ? "Generating..." : "Generate Monthly Plan"}</span>
+          <span className="sm:hidden">{generating ? "Generating..." : "Generate Plan"}</span>
         </Button>
       </div>
     </div>
