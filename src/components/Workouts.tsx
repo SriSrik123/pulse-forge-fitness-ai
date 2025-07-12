@@ -29,17 +29,20 @@ export function Workouts({ workoutType }: WorkoutsProps) {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="workout" className="flex items-center gap-2">
+          <TabsTrigger value="workout" className="flex items-center gap-1 text-xs sm:text-sm">
             <Activity className="h-4 w-4" />
-            Today's Workout
+            <span className="hidden sm:inline">Today's Workout</span>
+            <span className="sm:hidden">Today</span>
           </TabsTrigger>
-          <TabsTrigger value="plan" className="flex items-center gap-2">
+          <TabsTrigger value="plan" className="flex items-center gap-1 text-xs sm:text-sm">
             <Settings className="h-4 w-4" />
-            Monthly Plan
+            <span className="hidden sm:inline">Monthly Plan</span>
+            <span className="sm:hidden">Plan</span>
           </TabsTrigger>
-          <TabsTrigger value="calendar" className="flex items-center gap-2">
+          <TabsTrigger value="calendar" className="flex items-center gap-1 text-xs sm:text-sm">
             <Calendar className="h-4 w-4" />
-            Calendar & History
+            <span className="hidden sm:inline">Calendar & History</span>
+            <span className="sm:hidden">Calendar</span>
           </TabsTrigger>
         </TabsList>
 
