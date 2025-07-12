@@ -46,6 +46,7 @@ const EXPERIENCE_LEVELS = [
 
 export function Settings() {
   const [notifications, setNotifications] = useState(true)
+  const [smartwatchEnabled, setSmartwatchEnabled] = useState(false)
   const [primarySport, setPrimarySport] = useState("")
   const [experienceLevel, setExperienceLevel] = useState("")
   const [competitiveLevel, setCompetitiveLevel] = useState("")
@@ -67,6 +68,12 @@ export function Settings() {
       setTrainingFrequency([profile.trainingFrequency])
       setSessionDuration([profile.sessionDuration])
       setCurrentGoals(profile.currentGoals)
+    }
+    
+    // Load smartwatch setting from localStorage
+    const savedSmartwatchSetting = localStorage.getItem('smartwatch-enabled')
+    if (savedSmartwatchSetting) {
+      setSmartwatchEnabled(JSON.parse(savedSmartwatchSetting))
     }
   }, [profile])
 
@@ -124,6 +131,17 @@ export function Settings() {
     } finally {
       setResetLoading(false)
     }
+  }
+
+  const handleSmartwatchToggle = (enabled: boolean) => {
+    setSmartwatchEnabled(enabled)
+    localStorage.setItem('smartwatch-enabled', JSON.stringify(enabled))
+    toast({
+      title: enabled ? "Smartwatch Enabled" : "Smartwatch Disabled",
+      description: enabled 
+        ? "You can now manually enter data from your smartwatch." 
+        : "Smartwatch data entry has been disabled.",
+    })
   }
 
   const selectedSport = SPORTS.find(sport => sport.value === primarySport)
@@ -262,6 +280,16 @@ export function Settings() {
                   </p>
                 </div>
                 <Switch checked={notifications} onCheckedChange={setNotifications} />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Smartwatch Integration</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enable manual data entry from your smartwatch
+                  </p>
+                </div>
+                <Switch checked={smartwatchEnabled} onCheckedChange={handleSmartwatchToggle} />
               </div>
             </CardContent>
           </Card>
