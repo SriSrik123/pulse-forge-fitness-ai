@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar, Target, Plus, Minus } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
@@ -59,6 +60,7 @@ export function WorkoutPlanGenerator() {
       equipment: []
     }
   ])
+  const [aiPreferences, setAiPreferences] = useState("")
   const [generating, setGenerating] = useState(false)
 
   const getEquipmentForSport = (sport: string) => {
@@ -169,7 +171,8 @@ export function WorkoutPlanGenerator() {
           endDate,
           sportPreferences,
           multipleSessionsPerDay,
-          includesStrength
+          includesStrength,
+          aiPreferences
         }
       })
 
@@ -184,6 +187,7 @@ export function WorkoutPlanGenerator() {
       setPlanTitle("")
       setStartDate("")
       setEndDate("")
+      setAiPreferences("")
       setSportPreferences([{
         sport: profile.primarySport || "swimming",
         frequency: 3,
@@ -273,6 +277,17 @@ export function WorkoutPlanGenerator() {
               </div>
             </div>
           </div>
+
+          <div>
+            <Label htmlFor="aiPreferences">Training Preferences & Goals</Label>
+            <Textarea
+              id="aiPreferences"
+              value={aiPreferences}
+              onChange={(e) => setAiPreferences(e.target.value)}
+              placeholder="Describe your training goals, any injuries or limitations, preferred workout intensity, or specific focus areas..."
+              className="min-h-[80px]"
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -318,11 +333,11 @@ export function WorkoutPlanGenerator() {
                 </Select>
               </div>
               <div>
-                <Label>Sessions Per Week: {preference.frequency}</Label>
+                 <Label>Sessions Per Week: {preference.frequency}</Label>
                 <Input
                   type="range"
                   min="1"
-                  max="7"
+                  max="14"
                   value={preference.frequency}
                   onChange={(e) => updateSportPreference(index, 'frequency', parseInt(e.target.value))}
                   className="w-full"

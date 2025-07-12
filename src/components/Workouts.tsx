@@ -19,7 +19,7 @@ export function Workouts() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="generate" className="flex items-center gap-2">
             <Activity className="h-4 w-4" />
             Generate
@@ -30,11 +30,7 @@ export function Workouts() {
           </TabsTrigger>
           <TabsTrigger value="calendar" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Calendar
-          </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-2">
-            <History className="h-4 w-4" />
-            History
+            Calendar & History
           </TabsTrigger>
         </TabsList>
 
@@ -48,10 +44,6 @@ export function Workouts() {
 
         <TabsContent value="calendar" className="mt-6">
           <WorkoutCalendar />
-        </TabsContent>
-
-        <TabsContent value="history" className="mt-6">
-          <WorkoutHistory />
         </TabsContent>
       </Tabs>
     </div>

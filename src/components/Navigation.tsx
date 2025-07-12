@@ -12,7 +12,6 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const tabs = [
     { id: 'dashboard', icon: Home, label: 'Home' },
     { id: 'workouts', icon: Activity, label: 'Workouts' },
-    { id: 'generate', icon: Plus, label: 'Generate' },
     { id: 'fitness-data', icon: BarChart3, label: 'Data' },
     { id: 'profile', icon: User, label: 'Profile' },
     { id: 'settings', icon: Settings, label: 'Settings' },

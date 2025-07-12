@@ -2,7 +2,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Play, X, Check } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Play, X, Check, History } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
@@ -20,13 +21,27 @@ interface ScheduledWorkout {
   workout_id: string | null
 }
 
+interface CompletedWorkout {
+  id: string
+  title: string
+  sport: string
+  workout_type: string
+  completed: boolean
+  created_at: string
+  duration: number | null
+  feeling: string | null
+  journal_entry: string | null
+}
+
 export function WorkoutCalendar() {
   const { user } = useAuth()
   const { toast } = useToast()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [scheduledWorkouts, setScheduledWorkouts] = useState<ScheduledWorkout[]>([])
+  const [completedWorkouts, setCompletedWorkouts] = useState<CompletedWorkout[]>([])
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState("calendar")
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
@@ -35,6 +50,7 @@ export function WorkoutCalendar() {
   useEffect(() => {
     if (user) {
       fetchScheduledWorkouts()
+      fetchCompletedWorkouts()
     }
   }, [user, currentDate])
 
@@ -61,6 +77,28 @@ export function WorkoutCalendar() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchCompletedWorkouts = async () => {
+    if (!user) return
+
+    try {
+      const { data, error } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (error) throw error
+      setCompletedWorkouts(data || [])
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to load workout history",
+        variant: "destructive"
+      })
     }
   }
 
@@ -172,7 +210,8 @@ export function WorkoutCalendar() {
           sessionType: scheduledWorkout.workout_type,
           scheduledWorkoutId: scheduledWorkout.id,
           previousWorkouts: previousWorkouts || [],
-          adaptToProgress: true
+          adaptToProgress: true,
+          userPreferences: ""
         }
       })
 
@@ -210,12 +249,26 @@ export function WorkoutCalendar() {
       <div className="text-center py-4">
         <div className="flex items-center justify-center gap-2 mb-2">
           <CalendarIcon className="h-6 w-6" />
-          <h2 className="text-2xl font-bold">Workout Calendar</h2>
+          <h2 className="text-2xl font-bold">Calendar & History</h2>
         </div>
         <p className="text-muted-foreground">
-          View and manage your scheduled workouts
+          View and manage your scheduled workouts and training history
         </p>
       </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="calendar" className="flex items-center gap-2">
+            <CalendarIcon className="h-4 w-4" />
+            Calendar
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            History
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="calendar" className="mt-6">
 
       <Card className="glass border-0">
         <CardHeader>
@@ -260,20 +313,28 @@ export function WorkoutCalendar() {
                     {format(day, 'd')}
                   </div>
                   <div className="space-y-1">
-                    {dayWorkouts.slice(0, 2).map((workout, index) => (
-                      <div
-                        key={workout.id}
-                        className={`
-                          text-xs p-1 rounded text-center
-                          ${workout.completed ? 'bg-green-500/20 text-green-700' : 
-                            workout.skipped ? 'bg-red-500/20 text-red-700' : 
-                            'bg-primary/20 text-primary'}
-                        `}
-                      >
-                        <span className="mr-1">{getSportIcon(workout.sport)}</span>
-                        {workout.sport}
-                      </div>
-                    ))}
+                     {dayWorkouts.slice(0, 2).map((workout, index) => (
+                       <div
+                         key={workout.id}
+                         className={`
+                           text-xs p-1 rounded text-center relative
+                           ${workout.completed ? 'bg-green-500/20 text-green-700' : 
+                             workout.skipped ? 'bg-red-500/20 text-red-700' : 
+                             workout.sport === 'weightlifting' ? 'bg-orange-500/20 text-orange-700' :
+                             'bg-primary/20 text-primary'}
+                         `}
+                       >
+                         <div className={`absolute top-0 right-0 w-2 h-2 rounded-full ${
+                           workout.sport === 'weightlifting' ? 'bg-orange-500' :
+                           workout.sport === 'swimming' ? 'bg-blue-500' :
+                           workout.sport === 'running' ? 'bg-green-500' :
+                           workout.sport === 'cycling' ? 'bg-yellow-500' :
+                           'bg-purple-500'
+                         }`} />
+                         <span className="mr-1">{getSportIcon(workout.sport)}</span>
+                         {workout.sport}
+                       </div>
+                     ))}
                     {dayWorkouts.length > 2 && (
                       <div className="text-xs text-muted-foreground text-center">
                         +{dayWorkouts.length - 2} more
@@ -352,6 +413,55 @@ export function WorkoutCalendar() {
           </CardContent>
         </Card>
       )}
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <Card className="glass border-0">
+            <CardHeader>
+              <CardTitle>Workout History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {completedWorkouts.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    No completed workouts yet. Start training to see your history!
+                  </p>
+                ) : (
+                  completedWorkouts.map((workout) => (
+                    <div key={workout.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{getSportIcon(workout.sport)}</span>
+                        <div>
+                          <h4 className="font-medium">{workout.title}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(workout.created_at), 'MMM d, yyyy')} • {workout.workout_type}
+                            {workout.duration && ` • ${workout.duration} min`}
+                          </p>
+                          {workout.journal_entry && (
+                            <p className="text-sm text-muted-foreground mt-1 italic">
+                              "{workout.journal_entry}"
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {workout.feeling && (
+                          <Badge variant="outline">
+                            {workout.feeling}
+                          </Badge>
+                        )}
+                        <Badge variant="default">
+                          Completed
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

@@ -42,7 +42,8 @@ serve(async (req) => {
       endDate,
       sportPreferences,
       multipleSessionsPerDay,
-      includesStrength
+      includesStrength,
+      aiPreferences
     }: {
       planId: string
       startDate: string
@@ -50,6 +51,7 @@ serve(async (req) => {
       sportPreferences: SportPreference[]
       multipleSessionsPerDay: boolean
       includesStrength: boolean
+      aiPreferences?: string
     } = await req.json()
 
     console.log('Generating monthly plan:', { planId, startDate, endDate, sportPreferences })

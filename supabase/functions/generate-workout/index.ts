@@ -50,7 +50,8 @@ serve(async (req) => {
       goals,
       previousWorkouts = [],
       adaptToProgress = false,
-      scheduledWorkoutId = null
+      scheduledWorkoutId = null,
+      userPreferences = ""
     } = await req.json();
 
     console.log('Generating workout with params:', { workoutType, sport, sessionType, fitnessLevel, duration });
@@ -64,27 +65,38 @@ serve(async (req) => {
         title: w.title,
         date: w.created_at,
         completed: w.completed,
-        sport: w.sport
+        sport: w.sport,
+        journal_entry: w.journal_entry,
+        feeling: w.feeling
       }));
       
       workoutHistory = `
       
 RECENT WORKOUT HISTORY (consider for progression and variety):
-${recentWorkouts.map(w => `- ${w.title} (${w.completed ? 'completed' : 'not completed'}) - ${new Date(w.date).toLocaleDateString()}`).join('\n')}
+${recentWorkouts.map(w => `- ${w.title} (${w.completed ? 'completed' : 'not completed'}) - ${new Date(w.date).toLocaleDateString()}${w.journal_entry ? ` | Notes: ${w.journal_entry}` : ''}${w.feeling ? ` | Feeling: ${w.feeling}` : ''}`).join('\n')}
 
 Please ensure this workout:
 1. Progresses appropriately from recent sessions
 2. Varies exercises to prevent monotony
 3. Adjusts intensity based on completion patterns
 4. Builds upon previous training adaptations
+5. Takes into account any notes or feelings from previous workouts
       `;
     }
+
+    const preferencesContext = userPreferences ? `
+    
+USER PREFERENCES AND GOALS:
+${userPreferences}
+
+Please incorporate these preferences into the workout design.
+    ` : "";
     
     if (sport && sessionType) {
       const availableEquipment = sportEquipmentList?.join(", ") || "basic equipment";
       prompt = `Generate a ${duration}-minute ${sport} ${sessionType} session for a ${fitnessLevel} level athlete.
       Available equipment: ${availableEquipment}.
-      Goals: ${goals || `improve ${sport} performance`}.${workoutHistory}
+      Goals: ${goals || `improve ${sport} performance`}.${workoutHistory}${preferencesContext}
       
       Please provide a structured ${sessionType} plan with:
       1. Warm-up (5-10 minutes)
@@ -107,7 +119,7 @@ Please ensure this workout:
     } else {
       prompt = `Generate a ${duration}-minute ${workoutType} workout for a ${fitnessLevel} fitness level person. 
       Equipment available: ${equipment || 'bodyweight only'}. 
-      Goals: ${goals || 'general fitness'}. 
+      Goals: ${goals || 'general fitness'}.${workoutHistory}${preferencesContext}
       
       Please provide a structured workout plan with:
       1. Warm-up (5 minutes)
