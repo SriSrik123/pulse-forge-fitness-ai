@@ -3,8 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { WorkoutViewer } from "./WorkoutViewer"
 import { WorkoutPlanGenerator } from "./WorkoutPlanGenerator"
 import { WorkoutCalendar } from "./WorkoutCalendar"
-import { WorkoutHistory } from "./WorkoutHistory"
-import { Activity, Calendar, Settings, History } from "lucide-react"
+import { Activity, Calendar, Settings } from "lucide-react"
 
 interface WorkoutsProps {
   workoutType?: string | null

@@ -2,10 +2,12 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
-import { User, Settings, LogOut } from "lucide-react"
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import { User, Settings, LogOut, Calendar, MessageSquarePlus } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
+import { FeedbackForm } from "./FeedbackForm"
 
 interface ProfileDropdownProps {
   onTabChange: (tab: string) => void
@@ -21,6 +23,7 @@ export function ProfileDropdown({ onTabChange }: ProfileDropdownProps) {
   const { user } = useAuth()
   const { toast } = useToast()
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -109,6 +112,24 @@ export function ProfileDropdown({ onTabChange }: ProfileDropdownProps) {
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={() => onTabChange('calendar')}
+          className="cursor-pointer"
+        >
+          <Calendar className="mr-2 h-4 w-4" />
+          <span>Calendar</span>
+        </DropdownMenuItem>
+        <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
+          <DialogTrigger asChild>
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
+              <MessageSquarePlus className="mr-2 h-4 w-4" />
+              <span>Send Feedback</span>
+            </DropdownMenuItem>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg">
+            <FeedbackForm onClose={() => setFeedbackOpen(false)} />
+          </DialogContent>
+        </Dialog>
         <DropdownMenuItem 
           onClick={() => onTabChange('settings')}
           className="cursor-pointer"

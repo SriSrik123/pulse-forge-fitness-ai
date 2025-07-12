@@ -1,18 +1,51 @@
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Activity, Target, Calendar, TrendingUp, Clock, Zap } from "lucide-react"
 import { useSportProfile } from "@/hooks/useSportProfile"
+import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/integrations/supabase/client"
+import { format } from "date-fns"
 
 interface DashboardProps {
   onTabChange?: (tab: string, type?: string) => void
 }
 
 export function Dashboard({ onTabChange }: DashboardProps) {
+  const { user } = useAuth()
   const { profile, getSportInfo, hasProfile } = useSportProfile()
+  const [todayWorkouts, setTodayWorkouts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const sportInfo = getSportInfo(profile.primarySport)
+
+  useEffect(() => {
+    const fetchTodayWorkouts = async () => {
+      if (!user) return
+      
+      try {
+        const today = format(new Date(), 'yyyy-MM-dd')
+        const { data, error } = await supabase
+          .from('workouts')
+          .select('*')
+          .eq('user_id', user.id)
+          .gte('created_at', `${today}T00:00:00`)
+          .lte('created_at', `${today}T23:59:59`)
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+        setTodayWorkouts(data || [])
+      } catch (error) {
+        console.error('Error fetching today workouts:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTodayWorkouts()
+  }, [user])
 
   if (!hasProfile()) {
     return (
@@ -74,55 +107,99 @@ export function Dashboard({ onTabChange }: DashboardProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div 
-            className="flex items-center justify-between p-3 rounded-lg bg-pulse-blue/10 border border-pulse-blue/20 cursor-pointer hover:bg-pulse-blue/20 transition-colors"
-            onClick={() => onTabChange?.('workouts', 'training')}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-pulse-blue/20 flex items-center justify-center">
-                <Zap className="h-5 w-5 text-pulse-blue" />
-              </div>
-              <div>
-                <div className="font-medium">{sportInfo.label} Session</div>
-                <div className="text-sm text-muted-foreground">
-                  {profile.sessionDuration} minutes • Pre-generated
+          {todayWorkouts.map((workout) => {
+            const isCompleted = workout.completed
+            return (
+              <div 
+                key={workout.id}
+                className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                  isCompleted 
+                    ? 'bg-green-50 border-green-200 hover:bg-green-100' 
+                    : workout.workout_type === 'training' 
+                      ? 'bg-pulse-blue/10 border-pulse-blue/20 hover:bg-pulse-blue/20'
+                      : 'bg-orange-500/10 border-orange-500/20 hover:bg-orange-500/20'
+                }`}
+                onClick={() => onTabChange?.('workouts', workout.workout_type)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    isCompleted 
+                      ? 'bg-green-200' 
+                      : workout.workout_type === 'training' 
+                        ? 'bg-pulse-blue/20' 
+                        : 'bg-orange-500/20'
+                  }`}>
+                    <Zap className={`h-5 w-5 ${
+                      isCompleted 
+                        ? 'text-green-600' 
+                        : workout.workout_type === 'training' 
+                          ? 'text-pulse-blue' 
+                          : 'text-orange-500'
+                    }`} />
+                  </div>
+                  <div>
+                    <div className="font-medium">{workout.title}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {workout.duration || profile.sessionDuration} minutes • {workout.sport}
+                    </div>
+                  </div>
                 </div>
+                <Badge className={
+                  isCompleted 
+                    ? 'bg-green-100 text-green-800 border-green-200'
+                    : workout.workout_type === 'training' 
+                      ? 'bg-pulse-blue/20 text-pulse-blue border-pulse-blue/30'
+                      : 'bg-orange-500/20 text-orange-500 border-orange-500/30'
+                }>
+                  {isCompleted ? 'Completed ✓' : 'Ready'}
+                </Badge>
               </div>
-            </div>
-            <Badge className="bg-pulse-blue/20 text-pulse-blue border-pulse-blue/30">
-              Ready
-            </Badge>
-          </div>
+            )
+          })}
           
-          {/* Show lifting workout if applicable */}
-          <div 
-            className="flex items-center justify-between p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 cursor-pointer hover:bg-orange-500/20 transition-colors"
-            onClick={() => onTabChange?.('workouts', 'strength')}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
-                <Zap className="h-5 w-5 text-orange-500" />
-              </div>
-              <div>
-                <div className="font-medium">Strength Training</div>
-                <div className="text-sm text-muted-foreground">
-                  45 minutes • Pre-generated
+          {todayWorkouts.length === 0 && !loading && (
+            <>
+              <div 
+                className="flex items-center justify-between p-3 rounded-lg bg-pulse-blue/10 border border-pulse-blue/20 cursor-pointer hover:bg-pulse-blue/20 transition-colors"
+                onClick={() => onTabChange?.('workouts', 'training')}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-pulse-blue/20 flex items-center justify-center">
+                    <Zap className="h-5 w-5 text-pulse-blue" />
+                  </div>
+                  <div>
+                    <div className="font-medium">{sportInfo.label} Session</div>
+                    <div className="text-sm text-muted-foreground">
+                      {profile.sessionDuration} minutes • Generate new
+                    </div>
+                  </div>
                 </div>
+                <Badge className="bg-pulse-blue/20 text-pulse-blue border-pulse-blue/30">
+                  Generate
+                </Badge>
               </div>
-            </div>
-            <Badge className="bg-orange-500/20 text-orange-500 border-orange-500/30">
-              Ready
-            </Badge>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white">
-              ✓ Done
-            </Button>
-            <Button variant="outline" className="flex-1 border-red-500 text-red-500 hover:bg-red-50">
-              ✗ Skip
-            </Button>
-          </div>
+              
+              <div 
+                className="flex items-center justify-between p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 cursor-pointer hover:bg-orange-500/20 transition-colors"
+                onClick={() => onTabChange?.('workouts', 'strength')}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                    <Zap className="h-5 w-5 text-orange-500" />
+                  </div>
+                  <div>
+                    <div className="font-medium">Strength Training</div>
+                    <div className="text-sm text-muted-foreground">
+                      45 minutes • Generate new
+                    </div>
+                  </div>
+                </div>
+                <Badge className="bg-orange-500/20 text-orange-500 border-orange-500/30">
+                  Generate
+                </Badge>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

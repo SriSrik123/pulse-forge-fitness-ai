@@ -3,6 +3,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
 import { CheckCircle, BookOpen } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
@@ -15,19 +16,19 @@ interface WorkoutCompletionProps {
   onComplete: () => void
 }
 
-const feelingEmojis = [
-  { emoji: "😫", label: "Terrible" },
-  { emoji: "😕", label: "Poor" },
-  { emoji: "😐", label: "Okay" },
-  { emoji: "😊", label: "Good" },
-  { emoji: "🤩", label: "Amazing" }
+const feelingOptions = [
+  { value: 1, emoji: "😫", label: "Very Bad" },
+  { value: 2, emoji: "😕", label: "Bad" },
+  { value: 3, emoji: "😐", label: "Okay" },
+  { value: 4, emoji: "😊", label: "Good" },
+  { value: 5, emoji: "🤩", label: "Great" }
 ]
 
 export function WorkoutCompletion({ workout, onComplete }: WorkoutCompletionProps) {
   const { user } = useAuth()
   const { toast } = useToast()
   const [journalEntry, setJournalEntry] = useState("")
-  const [selectedFeeling, setSelectedFeeling] = useState("")
+  const [feelingSlider, setFeelingSlider] = useState([3])
   const [isCompleting, setIsCompleting] = useState(false)
   const [showPerformanceTracker, setShowPerformanceTracker] = useState(true)
 
@@ -36,13 +37,15 @@ export function WorkoutCompletion({ workout, onComplete }: WorkoutCompletionProp
 
     setIsCompleting(true)
     try {
+      const feelingValue = feelingOptions.find(f => f.value === feelingSlider[0])?.label.toLowerCase().replace(' ', '-') || 'okay'
+      
       // Update the workout as completed and add journal/feeling data
       const { error } = await supabase
         .from('workouts')
         .update({
           completed: true,
           journal_entry: journalEntry || null,
-          feeling: selectedFeeling || null
+          feeling: feelingValue
         })
         .eq('id', workout.id)
         .eq('user_id', user.id)
@@ -90,24 +93,28 @@ export function WorkoutCompletion({ workout, onComplete }: WorkoutCompletionProp
             Complete Workout
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
             <Label>How did you feel during this workout?</Label>
-            <div className="flex justify-between gap-2">
-              {feelingEmojis.map((feeling) => (
-                <button
-                  key={feeling.emoji}
-                  onClick={() => setSelectedFeeling(feeling.emoji)}
-                  className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all hover:bg-muted/50 ${
-                    selectedFeeling === feeling.emoji
-                      ? 'border-pulse-blue bg-pulse-blue/10'
-                      : 'border-border'
-                  }`}
-                >
-                  <span className="text-2xl mb-1">{feeling.emoji}</span>
-                  <span className="text-xs text-muted-foreground">{feeling.label}</span>
-                </button>
-              ))}
+            <div className="flex justify-center">
+              <span className="text-6xl">
+                {feelingOptions.find(f => f.value === feelingSlider[0])?.emoji || '😐'}
+              </span>
+            </div>
+            <div className="px-4">
+              <Slider
+                value={feelingSlider}
+                onValueChange={setFeelingSlider}
+                max={5}
+                min={1}
+                step={1}
+                className="w-full"
+              />
+            </div>
+            <div className="text-center">
+              <span className="text-sm font-medium">
+                {feelingOptions.find(f => f.value === feelingSlider[0])?.label || 'Okay'}
+              </span>
             </div>
           </div>
 
