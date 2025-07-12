@@ -34,6 +34,7 @@ export function PerformanceTracker({ workoutId, onPerformanceAdded }: Performanc
     exercise_name: "",
     metric_type: "strength"
   })
+  const [quickEntry, setQuickEntry] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const { user } = useAuth()
   const { toast } = useToast()
@@ -88,49 +89,123 @@ export function PerformanceTracker({ workoutId, onPerformanceAdded }: Performanc
     }
   }
 
-  const parseQuickEntry = (text: string) => {
+  const parseQuickEntry = (text: string, sport?: string) => {
     const entries: PerformanceEntry[] = []
     
-    // Parse patterns like "bench 120x8", "swim 10x100 yards on 1:10", etc.
+    // Sport-specific parsing patterns
     const patterns = [
-      // Strength: "bench 120x8" or "bench 120 lbs x 8 reps"
+      // Strength: "bench press 120x8", "squat 200 lbs x 5"
       /(\w+(?:\s+\w+)*)\s+(\d+(?:\.\d+)?)\s*(?:lbs?|kg|pounds?|kilograms?)?\s*x?\s*(\d+)\s*(?:reps?)?/gi,
-      // Cardio distance: "swim 10x100 yards" or "run 5 miles"
-      /(\w+(?:\s+\w+)*)\s+(\d+(?:\.\d+)?)\s*(yards?|meters?|miles?|km|kilometers?)/gi,
-      // Cardio time: "plank 2:30" or "run 25:00"
+      // Running: "ran 5 miles in 35:00" or "5k in 20:30"
+      /(?:ran\s+)?(\d+(?:\.\d+)?)\s*(miles?|km|k|kilometers?)\s*(?:in\s+)?(\d+):(\d+)/gi,
+      // Basketball: "made 15/20 free throws", "scored 25 points"
+      /(?:made\s+)?(\d+)\/(\d+)\s*(\w+(?:\s+\w+)*)|(?:scored\s+)?(\d+)\s*points?/gi,
+      // Soccer: "ran 7 miles", "scored 2 goals"  
+      /(?:scored\s+)?(\d+)\s*goals?|(?:ran\s+)?(\d+(?:\.\d+)?)\s*miles?/gi,
+      // Tennis: "won 6-4, 6-2", "hit 30 winners"
+      /won\s+(\d+-\d+(?:,\s*\d+-\d+)*)|hit\s+(\d+)\s*(\w+)/gi,
+      // Cycling: "rode 25 miles in 1:15:00"
+      /(?:rode\s+)?(\d+(?:\.\d+)?)\s*miles?\s*(?:in\s+)?(\d+):(\d+)(?::(\d+))?/gi,
+      // Swimming: "swam 1000 yards" (keep for swimming sport only)
+      /(?:swam\s+)?(\d+)\s*(?:x\s*)?(\d+)?\s*(yards?|meters?)\s*(?:on\s+(\d+):(\d+))?/gi,
+      // Time exercises: "plank 2:30"
       /(\w+(?:\s+\w+)*)\s+(\d+):(\d+)/gi
     ]
 
     patterns.forEach(pattern => {
       let match
       while ((match = pattern.exec(text)) !== null) {
-        const [, exercise, value1, value2OrUnit, value3] = match
+        const groups = match.slice(1).filter(g => g !== undefined)
         
-        if (pattern.source.includes('yards?|meters?')) {
-          // Distance exercise
+        // Handle different sport-specific patterns
+        if (pattern.source.includes('miles?.*in')) {
+          // Running: "5 miles in 35:00"
+          const [distance, unit, minutes, seconds] = groups
           entries.push({
-            exercise_name: exercise.trim(),
+            exercise_name: `Running`,
             metric_type: 'cardio',
-            distance: parseFloat(value1),
-            unit: value2OrUnit,
-            reps: value3 ? parseInt(value3) : undefined
+            distance: parseFloat(distance),
+            unit: unit,
+            time_seconds: parseInt(minutes) * 60 + parseInt(seconds)
+          })
+        } else if (pattern.source.includes('/')) {
+          // Basketball: "15/20 free throws" or "25 points"
+          if (groups.length >= 3 && groups[2]) {
+            entries.push({
+              exercise_name: groups[2],
+              metric_type: 'performance',
+              value: parseFloat(groups[0]),
+              reps: parseInt(groups[1])
+            })
+          } else if (groups[3]) {
+            entries.push({
+              exercise_name: 'Scoring',
+              metric_type: 'performance', 
+              value: parseFloat(groups[3]),
+              unit: 'points'
+            })
+          }
+        } else if (pattern.source.includes('goals?')) {
+          // Soccer: "scored 2 goals"
+          entries.push({
+            exercise_name: 'Goals',
+            metric_type: 'performance',
+            value: parseFloat(groups[0]),
+            unit: 'goals'
+          })
+        } else if (pattern.source.includes('won.*-')) {
+          // Tennis: "won 6-4, 6-2"
+          entries.push({
+            exercise_name: 'Match Result',
+            metric_type: 'performance',
+            notes: groups[0]
+          })
+        } else if (pattern.source.includes('hit.*winners')) {
+          // Tennis: "hit 30 winners"
+          entries.push({
+            exercise_name: groups[2] || 'Shots',
+            metric_type: 'performance',
+            value: parseFloat(groups[1])
+          })
+        } else if (pattern.source.includes('rode.*miles')) {
+          // Cycling: "rode 25 miles in 1:15:00"
+          const [distance, minutes, seconds, hours] = groups
+          const totalSeconds = (hours ? parseInt(hours) * 3600 : 0) + parseInt(minutes) * 60 + parseInt(seconds || '0')
+          entries.push({
+            exercise_name: 'Cycling',
+            metric_type: 'cardio',
+            distance: parseFloat(distance),
+            unit: 'miles',
+            time_seconds: totalSeconds
+          })
+        } else if (pattern.source.includes('yards?|meters?')) {
+          // Swimming: "1000 yards" or "10x100 yards on 1:10"
+          const [distance, sets, unit, minutes, seconds] = groups
+          entries.push({
+            exercise_name: 'Swimming',
+            metric_type: 'cardio',
+            distance: parseFloat(distance),
+            unit: unit,
+            sets: sets ? parseInt(sets) : undefined,
+            time_seconds: minutes && seconds ? parseInt(minutes) * 60 + parseInt(seconds) : undefined
           })
         } else if (pattern.source.includes(':')) {
-          // Time exercise (value1:value2 format)
-          const totalSeconds = parseInt(value1) * 60 + parseInt(value2OrUnit)
+          // Time-based: "plank 2:30"
+          const [exercise, minutes, seconds] = groups
           entries.push({
             exercise_name: exercise.trim(),
             metric_type: 'endurance',
-            time_seconds: totalSeconds
+            time_seconds: parseInt(minutes) * 60 + parseInt(seconds)
           })
         } else {
-          // Strength exercise
+          // Strength: "bench press 120x8"
+          const [exercise, weight, reps] = groups
           entries.push({
             exercise_name: exercise.trim(),
             metric_type: 'strength',
-            value: parseFloat(value1),
+            value: parseFloat(weight),
             unit: 'lbs',
-            reps: parseInt(value2OrUnit)
+            reps: parseInt(reps)
           })
         }
       }
@@ -139,7 +214,24 @@ export function PerformanceTracker({ workoutId, onPerformanceAdded }: Performanc
     return entries
   }
 
-  const [quickEntry, setQuickEntry] = useState("")
+  const getSportSpecificPlaceholder = (sport?: string) => {
+    switch (sport?.toLowerCase()) {
+      case 'basketball':
+        return "Example: made 15/20 free throws, scored 25 points, 8 rebounds"
+      case 'soccer':
+        return "Example: scored 2 goals, ran 7 miles, 5 assists" 
+      case 'tennis':
+        return "Example: won 6-4 6-2, hit 30 winners, 15 aces"
+      case 'cycling':
+        return "Example: rode 25 miles in 1:15:00, bench press 120x8"
+      case 'running':
+        return "Example: ran 5 miles in 35:00, plank 2:30, bench press 120x8"
+      case 'swimming':
+        return "Example: swam 1000 yards, 10x100 yards on 1:30, bench press 120x8"
+      default:
+        return "Example: bench press 120x8, plank 2:30, ran 3 miles in 25:00"
+    }
+  }
 
   const handleQuickEntry = () => {
     const parsed = parseQuickEntry(quickEntry)
@@ -153,7 +245,7 @@ export function PerformanceTracker({ workoutId, onPerformanceAdded }: Performanc
     } else {
       toast({
         title: "Could not parse",
-        description: "Try formats like 'bench 120x8' or 'swim 10x100 yards'",
+        description: "Try sport-specific formats like examples shown",
         variant: "destructive"
       })
     }
@@ -173,7 +265,7 @@ export function PerformanceTracker({ workoutId, onPerformanceAdded }: Performanc
           <Label>Quick Entry</Label>
           <div className="flex gap-2">
             <Textarea
-              placeholder="Example: bench 120x8, swim 10x100 yards on 1:10, plank 2:30"
+              placeholder={getSportSpecificPlaceholder()}
               value={quickEntry}
               onChange={(e) => setQuickEntry(e.target.value)}
               className="min-h-[60px]"
