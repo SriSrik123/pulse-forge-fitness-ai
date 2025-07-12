@@ -7,7 +7,7 @@ import { Activity, Target, Calendar, TrendingUp, Clock, Zap } from "lucide-react
 import { useSportProfile } from "@/hooks/useSportProfile"
 
 interface DashboardProps {
-  onTabChange?: (tab: string) => void
+  onTabChange?: (tab: string, type?: string) => void
 }
 
 export function Dashboard({ onTabChange }: DashboardProps) {
@@ -76,7 +76,7 @@ export function Dashboard({ onTabChange }: DashboardProps) {
         <CardContent className="space-y-3">
           <div 
             className="flex items-center justify-between p-3 rounded-lg bg-pulse-blue/10 border border-pulse-blue/20 cursor-pointer hover:bg-pulse-blue/20 transition-colors"
-            onClick={() => onTabChange?.('workouts')}
+            onClick={() => onTabChange?.('workouts', 'sport')}
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-pulse-blue/20 flex items-center justify-center">
@@ -97,7 +97,7 @@ export function Dashboard({ onTabChange }: DashboardProps) {
           {/* Show lifting workout if applicable */}
           <div 
             className="flex items-center justify-between p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 cursor-pointer hover:bg-orange-500/20 transition-colors"
-            onClick={() => onTabChange?.('workouts')}
+            onClick={() => onTabChange?.('workouts', 'strength')}
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">

@@ -5,11 +5,12 @@ import { WorkoutPlanGenerator } from "./WorkoutPlanGenerator"
 import { WorkoutCalendar } from "./WorkoutCalendar"
 import { WorkoutHistory } from "./WorkoutHistory"
 import { Activity, Calendar, Settings, History } from "lucide-react"
-import { useSearchParams } from "react-router-dom"
 
-export function Workouts() {
-  const [searchParams] = useSearchParams()
-  const workoutType = searchParams.get('type')
+interface WorkoutsProps {
+  workoutType?: string | null
+}
+
+export function Workouts({ workoutType }: WorkoutsProps) {
   const [activeTab, setActiveTab] = useState(workoutType ? "workout" : "plan")
 
   useEffect(() => {

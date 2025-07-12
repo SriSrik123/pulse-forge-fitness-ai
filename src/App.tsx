@@ -23,6 +23,7 @@ function AppContent() {
   const { user, loading } = useAuth()
   const { needsOnboarding, loading: onboardingLoading, completeOnboarding } = useOnboarding()
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [workoutType, setWorkoutType] = useState<string | null>(null)
 
   if (loading || onboardingLoading) {
     return (
@@ -43,12 +44,21 @@ function AppContent() {
     return <OnboardingSurvey onComplete={completeOnboarding} />
   }
 
+  const handleTabChange = (tab: string, type?: string) => {
+    setActiveTab(tab)
+    if (type) {
+      setWorkoutType(type)
+    } else {
+      setWorkoutType(null)
+    }
+  }
+
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard onTabChange={setActiveTab} />
+        return <Dashboard onTabChange={handleTabChange} />
       case 'workouts':
-        return <Workouts />
+        return <Workouts workoutType={workoutType} />
       case 'generate':
         return <WorkoutGenerator />
       case 'fitness-data':
@@ -58,7 +68,7 @@ function AppContent() {
       case 'settings':
         return <Settings />
       default:
-        return <Dashboard />
+        return <Dashboard onTabChange={handleTabChange} />
     }
   }
 
