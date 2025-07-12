@@ -130,6 +130,31 @@ Please address this feedback directly in the new workout.
     if (sport && sessionType) {
       const availableEquipment = sportEquipmentList?.join(", ") || "basic equipment";
       
+      // Get upcoming events to consider for workout planning
+      let upcomingEventsContext = "";
+      try {
+        const { data: upcomingEvents } = await supabaseClient
+          .from('scheduled_events')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('sport', sport)
+          .gte('scheduled_date', new Date().toISOString().split('T')[0])
+          .order('scheduled_date', { ascending: true })
+          .limit(3);
+
+        if (upcomingEvents && upcomingEvents.length > 0) {
+          upcomingEventsContext = `
+
+UPCOMING EVENTS TO PREPARE FOR:
+${upcomingEvents.map(e => `- ${e.title} (${e.event_type}) on ${e.scheduled_date}${e.opponent ? ` vs ${e.opponent}` : ''}`).join('\n')}
+
+IMPORTANT: Tailor this workout to prepare for these upcoming events. Include sport-specific drills and conditioning.
+          `;
+        }
+      } catch (error) {
+        console.error('Error fetching upcoming events:', error);
+      }
+
       let sportSpecificInstructions = "";
       if (sport === 'swimming') {
         sportSpecificInstructions = `
@@ -156,11 +181,51 @@ RUNNING SPECIFIC REQUIREMENTS:
   * Advanced: Faster paces with 60-90s recovery
 - Format clearly: "6x400m at 5K pace, 90s recovery"
         `;
+      } else if (sport === 'soccer') {
+        sportSpecificInstructions = `
+        
+SOCCER SPECIFIC REQUIREMENTS:
+- Include technical drills: passing, dribbling, first touch, shooting
+- Add small-sided games and scrimmage scenarios
+- Focus on position-specific skills
+- Include agility and speed work relevant to soccer
+- Example exercises: "Cone dribbling drill (5 cones, 2 touches max)", "Passing accuracy drill (15 yards, both feet)", "1v1 attacking drill"
+        `;
+      } else if (sport === 'basketball') {
+        sportSpecificInstructions = `
+        
+BASKETBALL SPECIFIC REQUIREMENTS:
+- Include ball handling drills, shooting drills, and defensive movements
+- Add court vision and decision-making scenarios
+- Focus on explosive movements and position skills
+- Include layup drills, free throws, and game situations
+- Example exercises: "Mikan drill (10 per side)", "Defensive slide drill", "3-point shooting (5 spots)"
+        `;
+      } else if (sport === 'tennis') {
+        sportSpecificInstructions = `
+        
+TENNIS SPECIFIC REQUIREMENTS:
+- Include stroke technique drills: forehand, backhand, serve, volley
+- Add footwork and court movement patterns
+- Focus on consistency and placement drills
+- Include match play scenarios and strategy
+- Example exercises: "Cross-court forehand drill (20 shots)", "Service placement drill", "Approach shot and volley"
+        `;
+      } else if (sport === 'cycling') {
+        sportSpecificInstructions = `
+        
+CYCLING SPECIFIC REQUIREMENTS:
+- Include interval training with power/pace zones
+- Add technique drills for efficiency and cadence
+- Focus on endurance and hill training
+- Include sprint and climbing intervals
+- Example exercises: "4x5min at threshold power", "Cadence drills (90-110 rpm)", "Hill repeats (8% grade, 2min efforts)"
+        `;
       }
       
       prompt = `Generate a ${duration}-minute ${sport} ${sessionType} session for a ${fitnessLevel} level athlete.
       Available equipment: ${availableEquipment}.
-      Goals: ${goals || `improve ${sport} performance`}.${workoutHistory}${preferencesContext}${feedbackContext}${userFeedbackContext}${sportSpecificInstructions}
+      Goals: ${goals || `improve ${sport} performance`}.${workoutHistory}${preferencesContext}${feedbackContext}${userFeedbackContext}${upcomingEventsContext}${sportSpecificInstructions}
       
       Please provide a structured ${sessionType} plan with:
       1. Warm-up (5-10 minutes)

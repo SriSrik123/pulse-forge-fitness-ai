@@ -215,32 +215,27 @@ export function PerformanceTracker({ workoutId, onPerformanceAdded }: Performanc
   }
 
   const getSportSpecificPlaceholder = (sport?: string) => {
-    switch (sport?.toLowerCase()) {
-      case 'basketball':
-        return "Example: made 15/20 free throws, scored 25 points, 8 rebounds"
-      case 'soccer':
-        return "Example: scored 2 goals, ran 7 miles, 5 assists" 
-      case 'tennis':
-        return "Example: won 6-4 6-2, hit 30 winners, 15 aces"
-      case 'cycling':
-        return "Example: rode 25 miles in 1:15:00, bench press 120x8"
-      case 'running':
-        return "Example: ran 5 miles in 35:00, plank 2:30, bench press 120x8"
-      case 'swimming':
-        return "Example: swam 1000 yards, 10x100 yards on 1:30, bench press 120x8"
-      default:
-        return "Example: bench press 120x8, plank 2:30, ran 3 miles in 25:00"
+    const sportPlaceholders: Record<string, string> = {
+      basketball: "e.g., '15 points', '8/12 fg', 'won 95-88'",
+      soccer: "e.g., '2 goals', '90 min', 'won 3-1', 'lost 2-0'",
+      tennis: "e.g., '6-4 6-2', '8 aces', 'won 2-1', 'lost 1-2'",
+      cycling: "e.g., '25k 45:30', 'power 250w', 'won race'",
+      running: "e.g., '5k 22:30', 'mile 6:45', 'won 1st place'",
+      swimming: "e.g., '100 free 58.5', '50 fly 28.2', 'won heat'",
+      strength: "e.g., 'bench 135x8', 'squat 3x225x5'"
     }
+    
+    return sportPlaceholders[sport?.toLowerCase() || 'strength'] || sportPlaceholders.strength
   }
 
   const handleQuickEntry = () => {
-    const parsed = parseQuickEntry(quickEntry)
+    const parsed = parseQuickEntry(quickEntry, 'strength')
     if (parsed.length > 0) {
       setEntries([...entries, ...parsed])
       setQuickEntry("")
       toast({
-        title: "Parsed performance data",
-        description: `Added ${parsed.length} exercises`
+        title: "Performance logged",
+        description: `Added ${parsed.length} entries`
       })
     } else {
       toast({

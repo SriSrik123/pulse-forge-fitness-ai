@@ -145,6 +145,57 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          location: string | null
+          notes: string | null
+          opponent: string | null
+          performance_data: Json | null
+          result: string | null
+          scheduled_date: string
+          scheduled_time: string | null
+          sport: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          opponent?: string | null
+          performance_data?: Json | null
+          result?: string | null
+          scheduled_date: string
+          scheduled_time?: string | null
+          sport: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          opponent?: string | null
+          performance_data?: Json | null
+          result?: string | null
+          scheduled_date?: string
+          scheduled_time?: string | null
+          sport?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       scheduled_workouts: {
         Row: {
           completed: boolean | null
