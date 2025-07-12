@@ -1,48 +1,186 @@
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { User, Award, Target, Calendar, Edit, Save, X } from "lucide-react"
+import { Camera, Award, Edit, Save, X, Trophy } from "lucide-react"
 import { toast } from "sonner"
 
-export function Profile() {
+interface Achievement {
+  id: string
+  name: string
+  icon: string
+  earned: boolean
+  points: number
+}
+
+interface UserStats {
+  workouts_completed: number
+  current_streak: number
+  total_calories: number
+}
+
+interface ProfileProps {
+  onShowAchievements: () => void
+}
+
+export function Profile({ onShowAchievements }: ProfileProps) {
   const { user } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [profile, setProfile] = useState<any>(null)
+  const [achievements, setAchievements] = useState<Achievement[]>([])
+  const [userStats, setUserStats] = useState<UserStats>({
+    workouts_completed: 0,
+    current_streak: 0,
+    total_calories: 0
+  })
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [editForm, setEditForm] = useState({
     full_name: '',
     username: ''
   })
 
   useEffect(() => {
-    loadProfile()
+    loadData()
   }, [user?.id])
 
-  const loadProfile = async () => {
+  const loadData = async () => {
     if (!user?.id) return
 
     try {
-      const { data, error } = await supabase
+      // Load profile
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single()
 
-      if (error) throw error
-      setProfile(data)
+      if (profileError) throw profileError
+      setProfile(profileData)
       setEditForm({
-        full_name: data.full_name || '',
-        username: data.username || ''
+        full_name: profileData.full_name || '',
+        username: profileData.username || ''
       })
+
+      // Load user achievements (top 4)
+      const { data: achievementsData, error: achievementsError } = await supabase
+        .from('achievements')
+        .select(`
+          id,
+          name,
+          icon,
+          points,
+          user_achievements!left(earned_at)
+        `)
+        .limit(4)
+
+      if (achievementsError) throw achievementsError
+
+      const processedAchievements = achievementsData.map((achievement: any) => ({
+        id: achievement.id,
+        name: achievement.name,
+        icon: achievement.icon,
+        earned: achievement.user_achievements.length > 0,
+        points: achievement.points
+      }))
+
+      setAchievements(processedAchievements)
+
+      // Load user stats from workouts
+      const { data: workoutsData, error: workoutsError } = await supabase
+        .from('workouts')
+        .select('completed, created_at')
+        .eq('user_id', user.id)
+
+      if (workoutsError) throw workoutsError
+
+      const completedWorkouts = workoutsData?.filter(w => w.completed) || []
+      setUserStats({
+        workouts_completed: completedWorkouts.length,
+        current_streak: calculateStreak(completedWorkouts),
+        total_calories: completedWorkouts.length * 300 // Rough estimate
+      })
+
     } catch (error) {
-      console.error('Error loading profile:', error)
+      console.error('Error loading profile data:', error)
+    }
+  }
+
+  const calculateStreak = (workouts: any[]) => {
+    if (workouts.length === 0) return 0
+    
+    const sortedDates = workouts
+      .map(w => new Date(w.created_at).toDateString())
+      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+    
+    let streak = 0
+    const today = new Date().toDateString()
+    const yesterday = new Date(Date.now() - 86400000).toDateString()
+    
+    if (sortedDates.includes(today) || sortedDates.includes(yesterday)) {
+      streak = 1
+      // Simple streak calculation - could be improved
+      for (let i = 1; i < sortedDates.length; i++) {
+        const currentDate = new Date(sortedDates[i])
+        const prevDate = new Date(sortedDates[i-1])
+        const diffDays = (prevDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)
+        
+        if (diffDays <= 1) {
+          streak++
+        } else {
+          break
+        }
+      }
+    }
+    
+    return streak
+  }
+
+  const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true)
+      
+      if (!event.target.files || event.target.files.length === 0) {
+        return
+      }
+
+      const file = event.target.files[0]
+      const fileExt = file.name.split('.').pop()
+      const filePath = `${user!.id}/${Math.random()}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file)
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
+      
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          avatar_url: data.publicUrl,
+        })
+        .eq('id', user!.id)
+
+      if (updateError) {
+        throw updateError
+      }
+
+      setProfile(prev => ({ ...prev, avatar_url: data.publicUrl }))
+      toast.success('Avatar updated successfully!')
+    } catch (error) {
+      console.error('Error uploading avatar:', error)
+      toast.error('Error uploading avatar!')
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -60,24 +198,12 @@ export function Profile() {
       
       toast.success('Profile updated successfully!')
       setIsEditing(false)
-      loadProfile()
+      loadData()
     } catch (error) {
       console.error('Error updating profile:', error)
       toast.error('Failed to update profile')
     }
   }
-  const achievements = [
-    { name: "First Workout", icon: "🎯", earned: true },
-    { name: "Week Warrior", icon: "🔥", earned: true },
-    { name: "Consistency King", icon: "👑", earned: false },
-    { name: "Strength Builder", icon: "💪", earned: true },
-  ]
-
-  const goals = [
-    { name: "Weekly Workouts", current: 4, target: 5, unit: "workouts" },
-    { name: "Monthly Steps", current: 180000, target: 250000, unit: "steps" },
-    { name: "Calories Burned", current: 1200, target: 2000, unit: "kcal" },
-  ]
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -86,6 +212,9 @@ export function Profile() {
           <div className="flex flex-col items-center text-center space-y-4">
             <div className="relative">
               <Avatar className="w-20 h-20">
+                {profile?.avatar_url && (
+                  <AvatarImage src={profile.avatar_url} alt="Profile picture" />
+                )}
                 <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-pulse-blue to-pulse-cyan text-white">
                   {profile?.full_name?.charAt(0) || profile?.username?.charAt(0) || user?.email?.charAt(0) || '?'}
                 </AvatarFallback>
@@ -94,10 +223,18 @@ export function Profile() {
                 size="sm"
                 variant="outline"
                 className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
-                onClick={() => toast.info('Profile picture upload coming soon!')}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
               >
-                <Edit className="h-3 w-3" />
+                <Camera className="h-3 w-3" />
               </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={uploadAvatar}
+                className="hidden"
+              />
             </div>
             
             {isEditing ? (
@@ -149,15 +286,15 @@ export function Profile() {
             )}
             <div className="flex gap-4 text-center">
               <div>
-                <div className="text-2xl font-bold text-pulse-blue">47</div>
+                <div className="text-2xl font-bold text-pulse-blue">{userStats.workouts_completed}</div>
                 <div className="text-xs text-muted-foreground">Workouts</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-pulse-green">12</div>
+                <div className="text-2xl font-bold text-pulse-green">{userStats.current_streak}</div>
                 <div className="text-xs text-muted-foreground">Day Streak</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-pulse-purple">8.2k</div>
+                <div className="text-2xl font-bold text-pulse-purple">{userStats.total_calories}</div>
                 <div className="text-xs text-muted-foreground">Calories</div>
               </div>
             </div>
@@ -167,84 +304,45 @@ export function Profile() {
 
       <Card className="glass border-0">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Award className="h-5 w-5" />
-            Achievements
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Award className="h-5 w-5" />
+              Recent Achievements
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={onShowAchievements}
+              className="text-xs"
+            >
+              View All <Trophy className="h-3 w-3 ml-1" />
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3">
-            {achievements.map((achievement, index) => (
+            {achievements.slice(0, 4).map((achievement) => (
               <div
-                key={index}
-                className={`p-3 rounded-lg border text-center ${
+                key={achievement.id}
+                className={`p-3 rounded-lg border text-center transition-all ${
                   achievement.earned
-                    ? 'bg-pulse-blue/10 border-pulse-blue/20'
-                    : 'bg-muted/30 border-muted'
+                    ? 'bg-pulse-green/10 border-pulse-green/20'
+                    : 'bg-muted/30 border-muted opacity-75'
                 }`}
               >
                 <div className="text-2xl mb-1">{achievement.icon}</div>
                 <div className="text-sm font-medium">{achievement.name}</div>
-                {achievement.earned && (
-                  <Badge variant="secondary" className="mt-1 text-xs">
-                    Earned
-                  </Badge>
-                )}
+                <div className="text-xs text-muted-foreground mt-1">
+                  {achievement.points} pts
+                </div>
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
-
-      <Card className="glass border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            Goals Progress
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {goals.map((goal, index) => {
-            const progress = (goal.current / goal.target) * 100
-            return (
-              <div key={index} className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium">{goal.name}</span>
-                  <span className="text-muted-foreground">
-                    {goal.current.toLocaleString()} / {goal.target.toLocaleString()} {goal.unit}
-                  </span>
-                </div>
-                <Progress value={progress} className="h-2" />
-              </div>
-            )
-          })}
-        </CardContent>
-      </Card>
-
-      <Card className="glass border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Recent Activity
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[
-              { date: "Today", activity: "Generated HIIT workout", time: "2 hours ago" },
-              { date: "Yesterday", activity: "Completed Upper Body workout", time: "1 day ago" },
-              { date: "Dec 3", activity: "Achieved weekly goal", time: "2 days ago" },
-              { date: "Dec 2", activity: "New personal best: 10k steps", time: "3 days ago" },
-            ].map((item, index) => (
-              <div key={index} className="flex justify-between items-center p-2 rounded-lg bg-muted/20">
-                <div>
-                  <div className="font-medium text-sm">{item.activity}</div>
-                  <div className="text-xs text-muted-foreground">{item.time}</div>
-                </div>
-                <div className="text-xs text-muted-foreground">{item.date}</div>
-              </div>
-            ))}
-          </div>
+          {achievements.length === 0 && (
+            <p className="text-center text-muted-foreground py-4">
+              Complete your first workout to start earning achievements!
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

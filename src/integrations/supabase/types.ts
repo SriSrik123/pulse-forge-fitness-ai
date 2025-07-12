@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          name: string
+          points: number
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          icon: string
+          id?: string
+          name: string
+          points?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          name?: string
+          points?: number
+        }
+        Relationships: []
+      }
       friends: {
         Row: {
           created_at: string
@@ -159,6 +189,83 @@ export type Database = {
           created_at?: string
           data?: Json
           id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          created_at: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          created_at?: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          created_at?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_goals: {
+        Row: {
+          category: string
+          completed: boolean
+          created_at: string
+          current_value: number
+          description: string | null
+          id: string
+          name: string
+          target_date: string | null
+          target_value: number
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          completed?: boolean
+          created_at?: string
+          current_value?: number
+          description?: string | null
+          id?: string
+          name: string
+          target_date?: string | null
+          target_value: number
+          unit?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          completed?: boolean
+          created_at?: string
+          current_value?: number
+          description?: string | null
+          id?: string
+          name?: string
+          target_date?: string | null
+          target_value?: number
+          unit?: string
           updated_at?: string
           user_id?: string
         }

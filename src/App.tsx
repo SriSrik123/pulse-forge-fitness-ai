@@ -12,6 +12,7 @@ import { WorkoutGenerator } from "./components/WorkoutGenerator"
 import { Workouts } from "./components/Workouts"
 import { Friends } from "./components/Friends"
 import { Profile } from "./components/Profile"
+import { Achievements } from "./components/Achievements"
 import { Settings } from "./components/Settings"
 import { FitnessData } from "./components/FitnessData"
 import { Auth } from "./components/Auth"
@@ -25,6 +26,7 @@ function AppContent() {
   const { needsOnboarding, loading: onboardingLoading, completeOnboarding } = useOnboarding()
   const [activeTab, setActiveTab] = useState('dashboard')
   const [workoutType, setWorkoutType] = useState<string | null>(null)
+  const [showAchievements, setShowAchievements] = useState(false)
 
   if (loading || onboardingLoading) {
     return (
@@ -47,6 +49,7 @@ function AppContent() {
 
   const handleTabChange = (tab: string, type?: string) => {
     setActiveTab(tab)
+    setShowAchievements(false) // Close achievements when switching tabs
     if (type) {
       setWorkoutType(type)
     } else {
@@ -55,6 +58,10 @@ function AppContent() {
   }
 
   const renderContent = () => {
+    if (showAchievements) {
+      return <Achievements onBack={() => setShowAchievements(false)} />
+    }
+
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard onTabChange={handleTabChange} />
@@ -67,7 +74,7 @@ function AppContent() {
       case 'fitness-data':
         return <FitnessData />
       case 'profile':
-        return <Profile />
+        return <Profile onShowAchievements={() => setShowAchievements(true)} />
       case 'settings':
         return <Settings />
       default:
