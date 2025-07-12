@@ -28,12 +28,16 @@ interface WorkoutData {
   cooldown: string[]
 }
 
-export function WorkoutViewer() {
+interface WorkoutViewerProps {
+  workoutType?: string | null;
+}
+
+export function WorkoutViewer({ workoutType: propWorkoutType }: WorkoutViewerProps = {}) {
   const { user } = useAuth()
   const { toast } = useToast()
   const { profile, getSportInfo } = useSportProfile()
   const [searchParams] = useSearchParams()
-  const workoutType = searchParams.get('type')
+  const workoutType = propWorkoutType || searchParams.get('type')
   
   const [workout, setWorkout] = useState<WorkoutData | null>(null)
   const [loading, setLoading] = useState(true)

@@ -44,7 +44,7 @@ export function Workouts() {
         </TabsList>
 
         <TabsContent value="workout" className="mt-6">
-          <WorkoutViewer />
+          <WorkoutViewer workoutType={workoutType} />
         </TabsContent>
 
         <TabsContent value="plan" className="mt-6">
