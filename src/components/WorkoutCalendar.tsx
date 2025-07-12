@@ -313,33 +313,31 @@ export function WorkoutCalendar() {
                     {format(day, 'd')}
                   </div>
                   <div className="space-y-1">
-                     {dayWorkouts.slice(0, 2).map((workout, index) => (
+                     {dayWorkouts.slice(0, 3).map((workout, index) => (
                        <div
                          key={workout.id}
-                         className={`
-                           text-xs p-1 rounded text-center relative
-                           ${workout.completed ? 'bg-green-500/20 text-green-700' : 
-                             workout.skipped ? 'bg-red-500/20 text-red-700' : 
-                             workout.sport === 'weightlifting' ? 'bg-orange-500/20 text-orange-700' :
-                             'bg-primary/20 text-primary'}
-                         `}
-                       >
-                         <div className={`absolute top-0 right-0 w-2 h-2 rounded-full ${
-                           workout.sport === 'weightlifting' ? 'bg-orange-500' :
-                           workout.sport === 'swimming' ? 'bg-blue-500' :
-                           workout.sport === 'running' ? 'bg-green-500' :
-                           workout.sport === 'cycling' ? 'bg-yellow-500' :
-                           'bg-purple-500'
-                         }`} />
-                         <span className="mr-1">{getSportIcon(workout.sport)}</span>
-                         {workout.sport}
-                       </div>
+                         className={`w-2 h-2 rounded-full inline-block mr-1 ${
+                           workout.completed 
+                             ? 'bg-green-500' 
+                             : workout.skipped
+                             ? 'bg-red-500'
+                             : workout.sport === 'weightlifting' || workout.sport === 'strength_training'
+                             ? 'bg-orange-500'
+                             : workout.sport === 'swimming'
+                             ? 'bg-blue-500'
+                             : workout.sport === 'running'
+                             ? 'bg-emerald-500'
+                             : workout.sport === 'cycling'
+                             ? 'bg-yellow-500'
+                             : 'bg-purple-500'
+                         }`}
+                       />
                      ))}
-                    {dayWorkouts.length > 2 && (
-                      <div className="text-xs text-muted-foreground text-center">
-                        +{dayWorkouts.length - 2} more
-                      </div>
-                    )}
+                     {dayWorkouts.length > 3 && (
+                       <div className="text-xs text-muted-foreground text-center">
+                         +{dayWorkouts.length - 3}
+                       </div>
+                     )}
                   </div>
                 </div>
               )

@@ -76,9 +76,9 @@ export function Dashboard() {
                 <Zap className="h-5 w-5 text-pulse-blue" />
               </div>
               <div>
-                <div className="font-medium">AI {sportInfo.label} Session</div>
+                <div className="font-medium">{sportInfo.label} Session</div>
                 <div className="text-sm text-muted-foreground">
-                  {profile.sessionDuration} minutes • Personalized
+                  {profile.sessionDuration} minutes • Pre-generated
                 </div>
               </div>
             </div>
@@ -87,9 +87,32 @@ export function Dashboard() {
             </Badge>
           </div>
           
-          <Button className="w-full pulse-gradient text-white">
-            Generate Today's Workout
-          </Button>
+          {/* Show lifting workout if applicable */}
+          <div className="flex items-center justify-between p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                <Zap className="h-5 w-5 text-orange-500" />
+              </div>
+              <div>
+                <div className="font-medium">Strength Training</div>
+                <div className="text-sm text-muted-foreground">
+                  45 minutes • Pre-generated
+                </div>
+              </div>
+            </div>
+            <Badge className="bg-orange-500/20 text-orange-500 border-orange-500/30">
+              Ready
+            </Badge>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white">
+              ✓ Done
+            </Button>
+            <Button variant="outline" className="flex-1 border-red-500 text-red-500 hover:bg-red-50">
+              ✗ Skip
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
