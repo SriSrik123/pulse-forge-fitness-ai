@@ -13,6 +13,7 @@ export function Auth() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [fullName, setFullName] = useState("")
+  const [username, setUsername] = useState("")
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
@@ -22,6 +23,17 @@ export function Auth() {
 
     try {
       if (isSignUp) {
+        // Check if username is available first
+        const { data: existingUser } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', username)
+          .single()
+
+        if (existingUser) {
+          throw new Error('Username is already taken')
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -29,6 +41,7 @@ export function Auth() {
             emailRedirectTo: `${window.location.origin}/`,
             data: {
               full_name: fullName,
+              username: username,
             }
           }
         })
@@ -78,17 +91,34 @@ export function Auth() {
         <CardContent>
           <form onSubmit={handleAuth} className="space-y-4">
             {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required={isSignUp}
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required={isSignUp}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    placeholder="Choose a username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                    required={isSignUp}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Only lowercase letters, numbers, and underscores allowed
+                  </p>
+                </div>
+              </>
             )}
             
             <div className="space-y-2">
