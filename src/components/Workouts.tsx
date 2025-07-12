@@ -1,13 +1,22 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { WorkoutGenerator } from "./WorkoutGenerator"
+import { WorkoutViewer } from "./WorkoutViewer"
 import { WorkoutPlanGenerator } from "./WorkoutPlanGenerator"
 import { WorkoutCalendar } from "./WorkoutCalendar"
 import { WorkoutHistory } from "./WorkoutHistory"
 import { Activity, Calendar, Settings, History } from "lucide-react"
+import { useSearchParams } from "react-router-dom"
 
 export function Workouts() {
-  const [activeTab, setActiveTab] = useState("generate")
+  const [searchParams] = useSearchParams()
+  const workoutType = searchParams.get('type')
+  const [activeTab, setActiveTab] = useState(workoutType ? "workout" : "plan")
+
+  useEffect(() => {
+    if (workoutType) {
+      setActiveTab("workout")
+    }
+  }, [workoutType])
 
   return (
     <div className="space-y-6">
@@ -20,9 +29,9 @@ export function Workouts() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="generate" className="flex items-center gap-2">
+          <TabsTrigger value="workout" className="flex items-center gap-2">
             <Activity className="h-4 w-4" />
-            Generate
+            Today's Workout
           </TabsTrigger>
           <TabsTrigger value="plan" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
@@ -34,8 +43,8 @@ export function Workouts() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="generate" className="mt-6">
-          <WorkoutGenerator />
+        <TabsContent value="workout" className="mt-6">
+          <WorkoutViewer />
         </TabsContent>
 
         <TabsContent value="plan" className="mt-6">

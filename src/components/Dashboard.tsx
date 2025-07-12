@@ -70,7 +70,10 @@ export function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center justify-between p-3 rounded-lg bg-pulse-blue/10 border border-pulse-blue/20">
+          <div 
+            className="flex items-center justify-between p-3 rounded-lg bg-pulse-blue/10 border border-pulse-blue/20 cursor-pointer hover:bg-pulse-blue/20 transition-colors"
+            onClick={() => window.location.href = '/workouts?type=sport'}
+          >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-pulse-blue/20 flex items-center justify-center">
                 <Zap className="h-5 w-5 text-pulse-blue" />
@@ -88,7 +91,10 @@ export function Dashboard() {
           </div>
           
           {/* Show lifting workout if applicable */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+          <div 
+            className="flex items-center justify-between p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 cursor-pointer hover:bg-orange-500/20 transition-colors"
+            onClick={() => window.location.href = '/workouts?type=strength'}
+          >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
                 <Zap className="h-5 w-5 text-orange-500" />

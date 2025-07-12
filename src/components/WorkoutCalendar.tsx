@@ -303,9 +303,10 @@ export function WorkoutCalendar() {
                 <div
                   key={day.toISOString()}
                   className={`
-                    min-h-[80px] p-2 border rounded-lg cursor-pointer transition-all
+                    min-h-[80px] p-2 border rounded-lg cursor-pointer transition-all relative
                     ${isSelected ? 'ring-2 ring-primary' : ''}
                     ${isToday ? 'bg-primary/10' : 'hover:bg-muted/50'}
+                    ${dayWorkouts.length > 0 && dayWorkouts.every(w => w.completed) ? 'bg-green-500/20 border-green-500/30' : ''}
                   `}
                   onClick={() => setSelectedDate(day)}
                 >
