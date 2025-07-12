@@ -100,13 +100,15 @@ Please incorporate these preferences into the workout design.
         sportSpecificInstructions = `
         
 SWIMMING SPECIFIC REQUIREMENTS:
-- Use proper swimming notation (e.g., "4x50 freestyle" instead of "4 sets of 50m freestyle")
+- DO NOT use "sets" terminology - use proper swimming notation instead
+- Format as distance/exercise with interval time (e.g., "4x50 freestyle on 1:30")
 - Include interval times based on fitness level:
   * Beginner: Easy pace with long rest (e.g., 4x50 free on 1:30)
   * Intermediate: Moderate pace (e.g., 6x50 free on 1:15) 
   * Advanced: Faster pace with shorter rest (e.g., 8x50 free on 1:00)
 - Include stroke variety (freestyle, backstroke, breaststroke, butterfly)
-- Format sets clearly: "8x25 freestyle on :45" or "4x100 IM on 2:30"
+- For JSON format: put the full exercise description in "reps" field and interval in "rest" field, leave "sets" empty
+- Example JSON exercise: {"name": "Freestyle Distance", "sets": "", "reps": "4x50 freestyle", "rest": "1:30", "description": "Focus on technique and breathing"}
         `;
       } else if (sport === 'running') {
         sportSpecificInstructions = `
