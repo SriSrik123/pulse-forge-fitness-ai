@@ -51,7 +51,8 @@ serve(async (req) => {
       previousWorkouts = [],
       adaptToProgress = false,
       scheduledWorkoutId = null,
-      userPreferences = ""
+      userPreferences = "",
+      userFeedback = ""
     } = await req.json();
 
     console.log('Generating workout with params:', { workoutType, sport, sessionType, fitnessLevel, duration });
@@ -91,6 +92,40 @@ ${userPreferences}
 
 Please incorporate these preferences into the workout design.
     ` : "";
+
+    // Get user feedback for this sport
+    let feedbackContext = "";
+    if (sport) {
+      try {
+        const { data: feedback } = await supabaseClient
+          .from('workout_feedback')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('sport', sport)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (feedback && feedback.length > 0) {
+          feedbackContext = `
+          
+USER FEEDBACK FROM PREVIOUS WORKOUTS:
+${feedback.map(f => `- ${f.feedback_text} (${f.feedback_type})`).join('\n')}
+
+IMPORTANT: Please incorporate this feedback into the workout design and adjust accordingly.
+          `;
+        }
+      } catch (error) {
+        console.error('Error fetching user feedback:', error);
+      }
+    }
+
+    const userFeedbackContext = userFeedback ? `
+    
+SPECIFIC USER FEEDBACK FOR THIS REGENERATION:
+${userFeedback}
+
+Please address this feedback directly in the new workout.
+    ` : "";
     
     if (sport && sessionType) {
       const availableEquipment = sportEquipmentList?.join(", ") || "basic equipment";
@@ -125,7 +160,7 @@ RUNNING SPECIFIC REQUIREMENTS:
       
       prompt = `Generate a ${duration}-minute ${sport} ${sessionType} session for a ${fitnessLevel} level athlete.
       Available equipment: ${availableEquipment}.
-      Goals: ${goals || `improve ${sport} performance`}.${workoutHistory}${preferencesContext}${sportSpecificInstructions}
+      Goals: ${goals || `improve ${sport} performance`}.${workoutHistory}${preferencesContext}${feedbackContext}${userFeedbackContext}${sportSpecificInstructions}
       
       Please provide a structured ${sessionType} plan with:
       1. Warm-up (5-10 minutes)
@@ -148,7 +183,7 @@ RUNNING SPECIFIC REQUIREMENTS:
     } else {
       prompt = `Generate a ${duration}-minute ${workoutType} workout for a ${fitnessLevel} fitness level person. 
       Equipment available: ${equipment || 'bodyweight only'}. 
-      Goals: ${goals || 'general fitness'}.${workoutHistory}${preferencesContext}
+      Goals: ${goals || 'general fitness'}.${workoutHistory}${preferencesContext}${feedbackContext}${userFeedbackContext}
       
       Please provide a structured workout plan with:
       1. Warm-up (5 minutes)

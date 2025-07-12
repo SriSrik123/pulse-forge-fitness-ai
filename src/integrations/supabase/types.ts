@@ -173,6 +173,39 @@ export type Database = {
         }
         Relationships: []
       }
+      workout_feedback: {
+        Row: {
+          created_at: string
+          feedback_text: string
+          feedback_type: string | null
+          id: string
+          sport: string
+          updated_at: string
+          user_id: string
+          workout_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          feedback_text: string
+          feedback_type?: string | null
+          id?: string
+          sport: string
+          updated_at?: string
+          user_id: string
+          workout_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          feedback_text?: string
+          feedback_type?: string | null
+          id?: string
+          sport?: string
+          updated_at?: string
+          user_id?: string
+          workout_id?: string | null
+        }
+        Relationships: []
+      }
       workout_plan_preferences: {
         Row: {
           created_at: string
@@ -256,6 +289,39 @@ export type Database = {
           training_frequency?: number | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      workout_questions: {
+        Row: {
+          answer: string | null
+          created_at: string
+          id: string
+          question: string
+          sport: string
+          updated_at: string
+          user_id: string
+          workout_id: string | null
+        }
+        Insert: {
+          answer?: string | null
+          created_at?: string
+          id?: string
+          question: string
+          sport: string
+          updated_at?: string
+          user_id: string
+          workout_id?: string | null
+        }
+        Update: {
+          answer?: string | null
+          created_at?: string
+          id?: string
+          question?: string
+          sport?: string
+          updated_at?: string
+          user_id?: string
+          workout_id?: string | null
         }
         Relationships: []
       }
