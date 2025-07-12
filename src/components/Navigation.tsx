@@ -15,7 +15,6 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
     { id: 'workouts', icon: Activity, label: 'Workouts' },
     { id: 'coaching', icon: MessageCircle, label: 'Coach' },
     { id: 'analytics', icon: BarChart3, label: 'Progress' },
-    { id: 'friends', icon: Users, label: 'Friends' },
   ]
 
   return (
