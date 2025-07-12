@@ -5,10 +5,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Activity, Target, Calendar, TrendingUp, Clock, Zap } from "lucide-react"
 import { useSportProfile } from "@/hooks/useSportProfile"
+import { useNavigate } from "react-router-dom"
 
 export function Dashboard() {
   const { profile, getSportInfo, hasProfile } = useSportProfile()
   const sportInfo = getSportInfo(profile.primarySport)
+  const navigate = useNavigate()
 
   if (!hasProfile()) {
     return (
@@ -72,7 +74,7 @@ export function Dashboard() {
         <CardContent className="space-y-3">
           <div 
             className="flex items-center justify-between p-3 rounded-lg bg-pulse-blue/10 border border-pulse-blue/20 cursor-pointer hover:bg-pulse-blue/20 transition-colors"
-            onClick={() => window.location.href = '/workouts?type=sport'}
+            onClick={() => navigate('/workouts?type=sport')}
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-pulse-blue/20 flex items-center justify-center">
@@ -93,7 +95,7 @@ export function Dashboard() {
           {/* Show lifting workout if applicable */}
           <div 
             className="flex items-center justify-between p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 cursor-pointer hover:bg-orange-500/20 transition-colors"
-            onClick={() => window.location.href = '/workouts?type=strength'}
+            onClick={() => navigate('/workouts?type=strength')}
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
