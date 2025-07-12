@@ -1,11 +1,71 @@
 
+import { useState, useEffect } from "react"
+import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/integrations/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { User, Award, Target, Calendar } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { User, Award, Target, Calendar, Edit, Save, X } from "lucide-react"
+import { toast } from "sonner"
 
 export function Profile() {
+  const { user } = useAuth()
+  const [isEditing, setIsEditing] = useState(false)
+  const [profile, setProfile] = useState<any>(null)
+  const [editForm, setEditForm] = useState({
+    full_name: '',
+    username: ''
+  })
+
+  useEffect(() => {
+    loadProfile()
+  }, [user?.id])
+
+  const loadProfile = async () => {
+    if (!user?.id) return
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (error) throw error
+      setProfile(data)
+      setEditForm({
+        full_name: data.full_name || '',
+        username: data.username || ''
+      })
+    } catch (error) {
+      console.error('Error loading profile:', error)
+    }
+  }
+
+  const saveProfile = async () => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: editForm.full_name,
+          username: editForm.username
+        })
+        .eq('id', user?.id)
+
+      if (error) throw error
+      
+      toast.success('Profile updated successfully!')
+      setIsEditing(false)
+      loadProfile()
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      toast.error('Failed to update profile')
+    }
+  }
   const achievements = [
     { name: "First Workout", icon: "🎯", earned: true },
     { name: "Week Warrior", icon: "🔥", earned: true },
@@ -24,15 +84,69 @@ export function Profile() {
       <Card className="glass border-0">
         <CardContent className="pt-6">
           <div className="flex flex-col items-center text-center space-y-4">
-            <Avatar className="w-20 h-20">
-              <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-pulse-blue to-pulse-cyan text-white">
-                A
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h2 className="text-2xl font-bold">Alex Johnson</h2>
-              <p className="text-muted-foreground">Fitness Enthusiast</p>
+            <div className="relative">
+              <Avatar className="w-20 h-20">
+                <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-pulse-blue to-pulse-cyan text-white">
+                  {profile?.full_name?.charAt(0) || profile?.username?.charAt(0) || user?.email?.charAt(0) || '?'}
+                </AvatarFallback>
+              </Avatar>
+              <Button
+                size="sm"
+                variant="outline"
+                className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
+                onClick={() => toast.info('Profile picture upload coming soon!')}
+              >
+                <Edit className="h-3 w-3" />
+              </Button>
             </div>
+            
+            {isEditing ? (
+              <div className="space-y-4 w-full max-w-sm">
+                <div>
+                  <Label htmlFor="full_name">Full Name</Label>
+                  <Input
+                    id="full_name"
+                    value={editForm.full_name}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, full_name: e.target.value }))}
+                    placeholder="Enter your full name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    value={editForm.username}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, username: e.target.value }))}
+                    placeholder="Enter your username"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={saveProfile} size="sm" className="bg-pulse-green hover:bg-pulse-green/80">
+                    <Save className="h-4 w-4 mr-1" />
+                    Save
+                  </Button>
+                  <Button onClick={() => setIsEditing(false)} size="sm" variant="outline">
+                    <X className="h-4 w-4 mr-1" />
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-2xl font-bold">{profile?.full_name || 'No name set'}</h2>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setIsEditing(true)}
+                    className="h-6 w-6 p-0"
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                </div>
+                <p className="text-muted-foreground">@{profile?.username || 'No username'}</p>
+              </div>
+            )}
             <div className="flex gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-pulse-blue">47</div>

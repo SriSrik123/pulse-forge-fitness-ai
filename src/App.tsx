@@ -10,6 +10,7 @@ import { Navigation } from "./components/Navigation"
 import { Dashboard } from "./components/Dashboard"
 import { WorkoutGenerator } from "./components/WorkoutGenerator"
 import { Workouts } from "./components/Workouts"
+import { Friends } from "./components/Friends"
 import { Profile } from "./components/Profile"
 import { Settings } from "./components/Settings"
 import { FitnessData } from "./components/FitnessData"
@@ -59,6 +60,8 @@ function AppContent() {
         return <Dashboard onTabChange={handleTabChange} />
       case 'workouts':
         return <Workouts workoutType={workoutType} />
+      case 'friends':
+        return <Friends />
       case 'generate':
         return <WorkoutGenerator />
       case 'fitness-data':

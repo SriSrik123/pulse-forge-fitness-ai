@@ -1,5 +1,5 @@
 
-import { Home, Activity, BarChart3 } from "lucide-react"
+import { Home, Activity, BarChart3, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "./ThemeToggle"
 import { ProfileDropdown } from "./ProfileDropdown"
@@ -13,6 +13,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const tabs = [
     { id: 'dashboard', icon: Home, label: 'Home' },
     { id: 'workouts', icon: Activity, label: 'Workouts' },
+    { id: 'friends', icon: Users, label: 'Friends' },
     { id: 'fitness-data', icon: BarChart3, label: 'Data' },
   ]
 
