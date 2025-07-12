@@ -58,13 +58,16 @@ export function SmartwatchDataEntry({ workoutId, onClose }: SmartwatchDataEntryP
         recorded_at: new Date().toISOString()
       }
 
-      // Save to a new table for smartwatch data
+      // Save to profiles table with smartwatch data in preferences
       const { error } = await supabase
-        .from('smartwatch_data')
-        .insert({
-          user_id: user.id,
-          data: smartwatchData,
-          created_at: new Date().toISOString()
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          preferences: {
+            smartwatch_data: smartwatchData
+          }
+        }, {
+          onConflict: 'id'
         })
 
       if (error) throw error
