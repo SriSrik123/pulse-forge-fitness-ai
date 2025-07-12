@@ -706,7 +706,7 @@ export function WorkoutCalendar() {
                   <h5 className="font-medium mb-3">Completed Workouts</h5>
                   <div className="space-y-3">
                     {selectedDateCompletedWorkouts.map((workout) => (
-                      <div key={workout.id} className="p-4 border rounded-lg bg-green-50 border-green-200 cursor-pointer hover:bg-green-100 transition-colors"
+                      <div key={workout.id} className="p-4 border rounded-lg bg-green-800/20 border-green-700/30 cursor-pointer hover:bg-green-800/30 transition-colors"
                            onClick={() => {
                              setSelectedWorkout(workout)
                              setShowWorkoutDialog(true)
@@ -788,7 +788,7 @@ export function WorkoutCalendar() {
 
               {/* Feeling and Journal */}
               {(selectedWorkout.feeling || selectedWorkout.journal_entry) && (
-                <Card className="border-0 bg-green-50/50">
+                <Card className="border-0 bg-green-800/10">
                   <CardContent className="p-4">
                     {selectedWorkout.feeling && (
                       <div className="flex items-center gap-3 mb-3">
