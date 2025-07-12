@@ -47,6 +47,69 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_workouts: {
+        Row: {
+          completed: boolean | null
+          created_at: string
+          id: string
+          plan_id: string | null
+          scheduled_date: string
+          session_time_of_day: string | null
+          skipped: boolean | null
+          sport: string
+          title: string
+          updated_at: string
+          user_id: string
+          workout_id: string | null
+          workout_type: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string
+          id?: string
+          plan_id?: string | null
+          scheduled_date: string
+          session_time_of_day?: string | null
+          skipped?: boolean | null
+          sport: string
+          title: string
+          updated_at?: string
+          user_id: string
+          workout_id?: string | null
+          workout_type: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string
+          id?: string
+          plan_id?: string | null
+          scheduled_date?: string
+          session_time_of_day?: string | null
+          skipped?: boolean | null
+          sport?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          workout_id?: string | null
+          workout_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_workouts_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "workout_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_workouts_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_sport_profiles: {
         Row: {
           competitive_level: string
@@ -81,6 +144,92 @@ export type Database = {
           primary_sport?: string
           session_duration?: number
           training_frequency?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      workout_plan_preferences: {
+        Row: {
+          created_at: string
+          equipment: string[] | null
+          frequency_per_week: number | null
+          id: string
+          plan_id: string | null
+          preferred_days: string[] | null
+          session_duration: number | null
+          sport: string
+        }
+        Insert: {
+          created_at?: string
+          equipment?: string[] | null
+          frequency_per_week?: number | null
+          id?: string
+          plan_id?: string | null
+          preferred_days?: string[] | null
+          session_duration?: number | null
+          sport: string
+        }
+        Update: {
+          created_at?: string
+          equipment?: string[] | null
+          frequency_per_week?: number | null
+          id?: string
+          plan_id?: string | null
+          preferred_days?: string[] | null
+          session_duration?: number | null
+          sport?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_plan_preferences_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "workout_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string
+          id: string
+          includes_strength: boolean | null
+          multiple_sessions_per_day: boolean | null
+          primary_sport: string
+          start_date: string
+          title: string
+          training_frequency: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date: string
+          id?: string
+          includes_strength?: boolean | null
+          multiple_sessions_per_day?: boolean | null
+          primary_sport: string
+          start_date: string
+          title: string
+          training_frequency?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          id?: string
+          includes_strength?: boolean | null
+          multiple_sessions_per_day?: boolean | null
+          primary_sport?: string
+          start_date?: string
+          title?: string
+          training_frequency?: number | null
           updated_at?: string
           user_id?: string
         }

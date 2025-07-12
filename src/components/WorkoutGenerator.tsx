@@ -54,6 +54,15 @@ export function WorkoutGenerator() {
 
     setGenerating(true)
     try {
+      // Get previous workouts for context
+      const { data: previousWorkouts } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('sport', selectedSport)
+        .order('created_at', { ascending: false })
+        .limit(5)
+
       const { data } = await supabase.functions.invoke('generate-workout', {
         body: {
           workoutType: selectedWorkoutType,
@@ -63,7 +72,9 @@ export function WorkoutGenerator() {
           duration: profile.sessionDuration,
           equipment: equipmentList,
           sportEquipmentList: equipmentList,
-          goals: `Improve ${selectedSport} performance`
+          goals: `Improve ${selectedSport} performance`,
+          previousWorkouts: previousWorkouts || [],
+          adaptToProgress: true
         }
       })
 

@@ -47,18 +47,44 @@ serve(async (req) => {
       duration, 
       equipment,
       sportEquipmentList,
-      goals 
+      goals,
+      previousWorkouts = [],
+      adaptToProgress = false,
+      scheduledWorkoutId = null
     } = await req.json();
 
     console.log('Generating workout with params:', { workoutType, sport, sessionType, fitnessLevel, duration });
 
     let prompt = "";
     
+    // Add previous workout context if available
+    let workoutHistory = "";
+    if (previousWorkouts && previousWorkouts.length > 0 && adaptToProgress) {
+      const recentWorkouts = previousWorkouts.slice(0, 3).map(w => ({
+        title: w.title,
+        date: w.created_at,
+        completed: w.completed,
+        sport: w.sport
+      }));
+      
+      workoutHistory = `
+      
+RECENT WORKOUT HISTORY (consider for progression and variety):
+${recentWorkouts.map(w => `- ${w.title} (${w.completed ? 'completed' : 'not completed'}) - ${new Date(w.date).toLocaleDateString()}`).join('\n')}
+
+Please ensure this workout:
+1. Progresses appropriately from recent sessions
+2. Varies exercises to prevent monotony
+3. Adjusts intensity based on completion patterns
+4. Builds upon previous training adaptations
+      `;
+    }
+    
     if (sport && sessionType) {
       const availableEquipment = sportEquipmentList?.join(", ") || "basic equipment";
       prompt = `Generate a ${duration}-minute ${sport} ${sessionType} session for a ${fitnessLevel} level athlete.
       Available equipment: ${availableEquipment}.
-      Goals: ${goals || `improve ${sport} performance`}.
+      Goals: ${goals || `improve ${sport} performance`}.${workoutHistory}
       
       Please provide a structured ${sessionType} plan with:
       1. Warm-up (5-10 minutes)
