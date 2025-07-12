@@ -60,6 +60,7 @@ export function WorkoutCalendar() {
   const [scheduledEvents, setScheduledEvents] = useState<ScheduledEvent[]>([])
   const [completedWorkouts, setCompletedWorkouts] = useState<CompletedWorkout[]>([])
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [selectedDateCompletedWorkouts, setSelectedDateCompletedWorkouts] = useState<CompletedWorkout[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("calendar")
   const [showEventDialog, setShowEventDialog] = useState(false)
@@ -85,6 +86,12 @@ export function WorkoutCalendar() {
       fetchCompletedWorkouts()
     }
   }, [user, currentDate])
+
+  useEffect(() => {
+    if (selectedDate && user) {
+      fetchCompletedWorkoutsForDate(selectedDate)
+    }
+  }, [selectedDate, user])
 
   const fetchScheduledWorkouts = async () => {
     if (!user) return
@@ -152,6 +159,31 @@ export function WorkoutCalendar() {
       toast({
         title: "Error",
         description: "Failed to load workout history",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const fetchCompletedWorkoutsForDate = async (date: Date) => {
+    if (!user) return
+
+    try {
+      const dateStr = format(date, 'yyyy-MM-dd')
+      const { data, error } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('completed', true)
+        .gte('created_at', `${dateStr}T00:00:00`)
+        .lte('created_at', `${dateStr}T23:59:59`)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setSelectedDateCompletedWorkouts(data || [])
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to load completed workouts for date",
         variant: "destructive"
       })
     }
@@ -365,14 +397,10 @@ export function WorkoutCalendar() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-1">
           <TabsTrigger value="calendar" className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4" />
-            Calendar
-          </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-2">
-            <History className="h-4 w-4" />
-            History
+            Calendar & History
           </TabsTrigger>
         </TabsList>
 
@@ -612,7 +640,7 @@ export function WorkoutCalendar() {
 
               {selectedDateWorkouts.length > 0 && (
                 <div>
-                  <h5 className="font-medium mb-3">Training Sessions</h5>
+                  <h5 className="font-medium mb-3">Scheduled Sessions</h5>
                   <div className="space-y-3">
                     {selectedDateWorkouts.map((workout) => (
                       <div key={workout.id} className="flex items-center justify-between p-4 border rounded-lg">
@@ -669,57 +697,42 @@ export function WorkoutCalendar() {
                   </div>
                 </div>
               )}
+
+              {selectedDateCompletedWorkouts.length > 0 && (
+                <div>
+                  <h5 className="font-medium mb-3">Completed Workouts</h5>
+                  <div className="space-y-3">
+                    {selectedDateCompletedWorkouts.map((workout) => (
+                      <div key={workout.id} className="p-4 border rounded-lg bg-green-50 border-green-200">
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="text-2xl">{getSportIcon(workout.sport)}</span>
+                          <div className="flex-1">
+                            <h4 className="font-medium">{workout.title}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(workout.created_at), 'h:mm a')} • {workout.workout_type}
+                              {workout.duration && ` • ${workout.duration} min`}
+                            </p>
+                          </div>
+                          {workout.feeling && (
+                            <Badge variant="outline" className="bg-white">
+                              {workout.feeling}
+                            </Badge>
+                          )}
+                        </div>
+                        {workout.journal_entry && (
+                          <div className="mt-2 p-2 bg-white rounded border">
+                            <p className="text-sm italic">"{workout.journal_entry}"</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       )}
-        </TabsContent>
-
-        <TabsContent value="history" className="mt-6">
-          <Card className="glass border-0">
-            <CardHeader>
-              <CardTitle>Workout History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {completedWorkouts.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    No completed workouts yet. Start training to see your history!
-                  </p>
-                ) : (
-                  completedWorkouts.map((workout) => (
-                    <div key={workout.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{getSportIcon(workout.sport)}</span>
-                        <div>
-                          <h4 className="font-medium">{workout.title}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(workout.created_at), 'MMM d, yyyy')} • {workout.workout_type}
-                            {workout.duration && ` • ${workout.duration} min`}
-                          </p>
-                          {workout.journal_entry && (
-                            <p className="text-sm text-muted-foreground mt-1 italic">
-                              "{workout.journal_entry}"
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {workout.feeling && (
-                          <Badge variant="outline">
-                            {workout.feeling}
-                          </Badge>
-                        )}
-                        <Badge variant="default">
-                          Completed
-                        </Badge>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>

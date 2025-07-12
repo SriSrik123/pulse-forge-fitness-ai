@@ -28,17 +28,16 @@ export function Dashboard({ onTabChange }: DashboardProps) {
       try {
         const today = format(new Date(), 'yyyy-MM-dd')
         const { data, error } = await supabase
-          .from('workouts')
+          .from('scheduled_workouts')
           .select('*')
           .eq('user_id', user.id)
-          .gte('created_at', `${today}T00:00:00`)
-          .lte('created_at', `${today}T23:59:59`)
-          .order('created_at', { ascending: false })
+          .eq('scheduled_date', today)
+          .order('workout_type', { ascending: true })
 
         if (error) throw error
         setTodayWorkouts(data || [])
       } catch (error) {
-        console.error('Error fetching today workouts:', error)
+        console.error('Error fetching today scheduled workouts:', error)
       } finally {
         setLoading(false)
       }
@@ -137,12 +136,12 @@ export function Dashboard({ onTabChange }: DashboardProps) {
                           : 'text-orange-500'
                     }`} />
                   </div>
-                  <div>
-                    <div className="font-medium">{workout.title}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {workout.duration || profile.sessionDuration} minutes • {workout.sport}
-                    </div>
-                  </div>
+                   <div>
+                     <div className="font-medium">{workout.title}</div>
+                     <div className="text-sm text-muted-foreground">
+                       {format(new Date(), 'EEEE')} • {workout.session_time_of_day || 'morning'} • {workout.sport}
+                     </div>
+                   </div>
                 </div>
                 <Badge className={
                   isCompleted 
