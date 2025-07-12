@@ -550,7 +550,7 @@ export function WorkoutCalendar() {
                     min-h-[80px] p-2 border rounded-lg cursor-pointer transition-all relative
                     ${isSelected ? 'ring-2 ring-primary' : ''}
                     ${isToday ? 'bg-primary/10' : 'hover:bg-muted/50'}
-                    ${dayWorkouts.length > 0 && dayWorkouts.every(w => w.completed) ? 'bg-green-50 border-green-200' : ''}
+                    ${dayWorkouts.length > 0 && dayWorkouts.every(w => w.completed) ? 'bg-green-800/20 border-green-700/30' : ''}
                     ${dayEvents.length > 0 ? 'border-l-4 border-l-yellow-500' : ''}
                   `}
                   onClick={() => setSelectedDate(day)}
