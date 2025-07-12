@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Play, X, Check, History, Plus, Trophy } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Play, X, Check, History, Plus, Trophy, Activity, Clock, Target, Zap, Eye } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
@@ -36,6 +36,7 @@ interface CompletedWorkout {
   duration: number | null
   feeling: string | null
   journal_entry: string | null
+  exercises?: any
 }
 
 interface ScheduledEvent {
@@ -64,6 +65,8 @@ export function WorkoutCalendar() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("calendar")
   const [showEventDialog, setShowEventDialog] = useState(false)
+  const [showWorkoutDialog, setShowWorkoutDialog] = useState(false)
+  const [selectedWorkout, setSelectedWorkout] = useState<CompletedWorkout | null>(null)
   const [eventForm, setEventForm] = useState({
     title: '',
     event_type: 'game',
@@ -703,7 +706,11 @@ export function WorkoutCalendar() {
                   <h5 className="font-medium mb-3">Completed Workouts</h5>
                   <div className="space-y-3">
                     {selectedDateCompletedWorkouts.map((workout) => (
-                      <div key={workout.id} className="p-4 border rounded-lg bg-green-50 border-green-200">
+                      <div key={workout.id} className="p-4 border rounded-lg bg-green-50 border-green-200 cursor-pointer hover:bg-green-100 transition-colors"
+                           onClick={() => {
+                             setSelectedWorkout(workout)
+                             setShowWorkoutDialog(true)
+                           }}>
                         <div className="flex items-center gap-3 mb-2">
                           <span className="text-2xl">{getSportIcon(workout.sport)}</span>
                           <div className="flex-1">
@@ -713,20 +720,21 @@ export function WorkoutCalendar() {
                               {workout.duration && ` • ${workout.duration} min`}
                             </p>
                           </div>
-                         {workout.feeling && (
-                           <div className="flex items-center gap-2">
-                             <span className="text-2xl">
-                               {workout.feeling === 'very-bad' ? '😫' : 
-                                workout.feeling === 'bad' ? '😕' : 
-                                workout.feeling === 'okay' ? '😐' : 
-                                workout.feeling === 'good' ? '😊' : 
-                                workout.feeling === 'great' ? '🤩' : '😐'}
-                             </span>
-                             <Badge variant="outline" className="bg-white text-xs capitalize">
-                               {workout.feeling.replace('-', ' ')}
-                             </Badge>
-                           </div>
-                         )}
+                          {workout.feeling && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">
+                                {workout.feeling === 'very-bad' ? '😫' : 
+                                 workout.feeling === 'bad' ? '😕' : 
+                                 workout.feeling === 'okay' ? '😐' : 
+                                 workout.feeling === 'good' ? '😊' : 
+                                 workout.feeling === 'great' ? '🤩' : '😐'}
+                              </span>
+                              <Badge variant="outline" className="bg-white text-xs capitalize">
+                                {workout.feeling.replace('-', ' ')}
+                              </Badge>
+                            </div>
+                          )}
+                          <Eye className="h-4 w-4 text-muted-foreground" />
                         </div>
                         {workout.journal_entry && (
                           <div className="mt-2 p-2 bg-white rounded border">
@@ -742,6 +750,159 @@ export function WorkoutCalendar() {
           </CardContent>
         </Card>
       )}
+
+      {/* Workout Details Dialog */}
+      <Dialog open={showWorkoutDialog} onOpenChange={setShowWorkoutDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              {selectedWorkout?.title}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedWorkout && (
+            <div className="space-y-6">
+              {/* Workout Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <span className="text-3xl">{getSportIcon(selectedWorkout.sport)}</span>
+                  <div>
+                    <h3 className="text-lg font-semibold">{selectedWorkout.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(selectedWorkout.created_at), 'EEEE, MMMM d, yyyy • h:mm a')}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Badge className="bg-pulse-blue/20 text-pulse-blue">
+                    {selectedWorkout.workout_type}
+                  </Badge>
+                  {selectedWorkout.duration && (
+                    <Badge variant="outline">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {selectedWorkout.duration} min
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Feeling and Journal */}
+              {(selectedWorkout.feeling || selectedWorkout.journal_entry) && (
+                <Card className="border-0 bg-green-50/50">
+                  <CardContent className="p-4">
+                    {selectedWorkout.feeling && (
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-2xl">
+                          {selectedWorkout.feeling === 'very-bad' ? '😫' : 
+                           selectedWorkout.feeling === 'bad' ? '😕' : 
+                           selectedWorkout.feeling === 'okay' ? '😐' : 
+                           selectedWorkout.feeling === 'good' ? '😊' : 
+                           selectedWorkout.feeling === 'great' ? '🤩' : '😐'}
+                        </span>
+                        <span className="font-medium capitalize">
+                          Felt {selectedWorkout.feeling.replace('-', ' ')}
+                        </span>
+                      </div>
+                    )}
+                    {selectedWorkout.journal_entry && (
+                      <div>
+                        <h4 className="font-medium mb-2">Journal Entry:</h4>
+                        <p className="text-sm italic bg-white p-3 rounded border">
+                          "{selectedWorkout.journal_entry}"
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Workout Details */}
+              {selectedWorkout.exercises && typeof selectedWorkout.exercises === 'object' && (
+                <div className="space-y-4">
+                  {/* Warmup */}
+                  {selectedWorkout.exercises.warmup && Array.isArray(selectedWorkout.exercises.warmup) && (
+                    <Card className="border-0 bg-orange-50/50">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Target className="h-4 w-4" />
+                          Warm-up
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <ul className="space-y-2">
+                          {selectedWorkout.exercises.warmup.map((item: string, index: number) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <span className="text-sm font-medium text-orange-600 mt-0.5">
+                                {index + 1}.
+                              </span>
+                              <span className="text-sm">{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Main Exercises */}
+                  {selectedWorkout.exercises.exercises && Array.isArray(selectedWorkout.exercises.exercises) && (
+                    <Card className="border-0 bg-pulse-blue/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Zap className="h-4 w-4" />
+                          Main Workout
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="space-y-4">
+                          {selectedWorkout.exercises.exercises.map((exercise: any, index: number) => (
+                            <div key={index} className="p-3 bg-white rounded border">
+                              <h5 className="font-medium mb-1">{exercise.name}</h5>
+                              <p className="text-sm text-muted-foreground mb-2">
+                                {exercise.sets} sets × {exercise.reps} reps
+                                {exercise.rest && ` • Rest: ${exercise.rest}`}
+                              </p>
+                              {exercise.description && (
+                                <p className="text-sm text-muted-foreground italic">
+                                  {exercise.description}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Cooldown */}
+                  {selectedWorkout.exercises.cooldown && Array.isArray(selectedWorkout.exercises.cooldown) && (
+                    <Card className="border-0 bg-blue-50/50">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Activity className="h-4 w-4" />
+                          Cool-down
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <ul className="space-y-2">
+                          {selectedWorkout.exercises.cooldown.map((item: string, index: number) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <span className="text-sm font-medium text-blue-600 mt-0.5">
+                                {index + 1}.
+                              </span>
+                              <span className="text-sm">{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
         </TabsContent>
       </Tabs>
     </div>
