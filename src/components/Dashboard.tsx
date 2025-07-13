@@ -21,8 +21,22 @@ export function Dashboard({ onTabChange }: DashboardProps) {
   const [loading, setLoading] = useState(true)
   const sportInfo = getSportInfo(profile.primarySport)
 
+  const getDailyBlurb = () => {
+    const day = new Date().getDay()
+    const blurbs = [
+      "Sunday vibes! Time to prepare for an amazing week of training ahead. 🌟",
+      "Monday motivation! Let's crush this week with focused determination. 💪",
+      "Tuesday power! Build on yesterday's momentum and push your limits. 🔥", 
+      "Wednesday wisdom! You're halfway through - keep the energy flowing. ⚡",
+      "Thursday strength! The weekend is close, finish strong today. 🎯",
+      "Friday focus! End the week on a high note with your best effort. 🚀",
+      "Saturday surge! Weekend energy is here - make it count! ⭐"
+    ]
+    return blurbs[day]
+  }
+
   useEffect(() => {
-    const fetchTodayWorkouts = async () => {
+    const fetchOrGenerateTodayWorkouts = async () => {
       if (!user) return
       
       try {
@@ -35,16 +49,58 @@ export function Dashboard({ onTabChange }: DashboardProps) {
           .order('workout_type', { ascending: true })
 
         if (error) throw error
-        setTodayWorkouts(data || [])
+        
+        let workouts = data || []
+        
+        // If no workouts exist for today, auto-generate them
+        if (workouts.length === 0) {
+          // Generate training workout
+          const { error: trainingError } = await supabase
+            .from('scheduled_workouts')
+            .insert({
+              user_id: user.id,
+              title: `${sportInfo.label} Training`,
+              workout_type: 'training',
+              sport: profile.primarySport,
+              scheduled_date: today,
+              session_time_of_day: 'morning'
+            })
+
+          // Generate strength workout if user trains multiple times per week
+          if (profile.trainingFrequency >= 4) {
+            const { error: strengthError } = await supabase
+              .from('scheduled_workouts')
+              .insert({
+                user_id: user.id,
+                title: 'Strength Training',
+                workout_type: 'strength',
+                sport: 'weightlifting',
+                scheduled_date: today,
+                session_time_of_day: 'evening'
+              })
+          }
+
+          // Refetch after generation
+          const { data: newData } = await supabase
+            .from('scheduled_workouts')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('scheduled_date', today)
+            .order('workout_type', { ascending: true })
+          
+          workouts = newData || []
+        }
+        
+        setTodayWorkouts(workouts)
       } catch (error) {
-        console.error('Error fetching today scheduled workouts:', error)
+        console.error('Error fetching/generating today workouts:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchTodayWorkouts()
-  }, [user])
+    fetchOrGenerateTodayWorkouts()
+  }, [user, profile.primarySport, profile.trainingFrequency])
 
   if (!hasProfile()) {
     return (
@@ -72,8 +128,11 @@ export function Dashboard({ onTabChange }: DashboardProps) {
           <span className="text-2xl">{sportInfo.icon}</span>
           <h2 className="text-2xl font-bold">{sportInfo.label} Training</h2>
         </div>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground mb-2">
           {profile.experienceLevel} • {profile.competitiveLevel} level
+        </p>
+        <p className="text-sm text-muted-foreground/80 italic">
+          {getDailyBlurb()}
         </p>
       </div>
 
@@ -206,21 +265,36 @@ export function Dashboard({ onTabChange }: DashboardProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Recent Activity
+            Monthly Plan & Calendar
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/30 flex items-center justify-center">
-              <Calendar className="h-8 w-8 text-muted-foreground" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div 
+              className="flex flex-col items-center justify-center p-6 rounded-lg bg-pulse-blue/10 border border-pulse-blue/20 cursor-pointer hover:bg-pulse-blue/20 transition-colors"
+              onClick={() => onTabChange?.('workouts', 'calendar')}
+            >
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-pulse-blue/20 flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-pulse-blue" />
+              </div>
+              <h3 className="font-medium mb-1">Workout Calendar</h3>
+              <p className="text-xs text-muted-foreground text-center">
+                View and schedule your workouts
+              </p>
             </div>
-            <h3 className="text-lg font-medium mb-2">No Activity Yet</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Start your first workout to see your activity history here
-            </p>
-            <Button size="sm" variant="outline">
-              Generate First Workout
-            </Button>
+            
+            <div 
+              className="flex flex-col items-center justify-center p-6 rounded-lg bg-orange-500/10 border border-orange-500/20 cursor-pointer hover:bg-orange-500/20 transition-colors"
+              onClick={() => onTabChange?.('workouts', 'plan')}
+            >
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-orange-500/20 flex items-center justify-center">
+                <Target className="h-6 w-6 text-orange-500" />
+              </div>
+              <h3 className="font-medium mb-1">Monthly Plan</h3>
+              <p className="text-xs text-muted-foreground text-center">
+                Generate a training schedule
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
