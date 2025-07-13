@@ -172,7 +172,9 @@ export function WorkoutCalendar() {
 
     try {
       const dateStr = format(date, 'yyyy-MM-dd')
-      const { data, error } = await supabase
+      
+      // Get completed workouts (from workouts table where user clicked "done")
+      const { data: completedWorkouts, error: completedError } = await supabase
         .from('workouts')
         .select('*')
         .eq('user_id', user.id)
@@ -181,8 +183,28 @@ export function WorkoutCalendar() {
         .lte('created_at', `${dateStr}T23:59:59`)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
-      setSelectedDateCompletedWorkouts(data || [])
+      if (completedError) throw completedError
+
+      // Get plan info for workouts that came from scheduled workouts
+      const workoutsWithPlanInfo = await Promise.all(
+        (completedWorkouts || []).map(async (workout) => {
+          // Try to find the scheduled workout this came from
+          const { data: scheduledWorkout } = await supabase
+            .from('scheduled_workouts')
+            .select('plan_id, workout_plans(title)')
+            .eq('workout_id', workout.id)
+            .maybeSingle()
+
+          let title = workout.title
+          if (scheduledWorkout?.workout_plans?.title) {
+            title = `${workout.title} (${scheduledWorkout.workout_plans.title})`
+          }
+
+          return { ...workout, title }
+        })
+      )
+
+      setSelectedDateCompletedWorkouts(workoutsWithPlanInfo)
     } catch (error: any) {
       toast({
         title: "Error",
@@ -699,26 +721,27 @@ export function WorkoutCalendar() {
                         </div>
                         
                         <div className="flex gap-2">
-                          {!workout.completed && !workout.skipped && selectedDate && !isSameDay(selectedDate, new Date()) && selectedDate <= new Date() && (
+                          {/* Always show view button if workout exists */}
+                          {workout.workout_id && (
+                            <Button
+                              size="sm"
+                              onClick={() => fetchWorkoutForScheduled(workout)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                          )}
+                          
+                          {/* Show action buttons for non-completed, non-skipped workouts */}
+                          {!workout.completed && !workout.skipped && selectedDate && selectedDate <= new Date() && (
                             <>
-                              {!workout.workout_id ? (
+                              {!workout.workout_id && (
                                 <Button
                                   size="sm"
                                   onClick={() => generateWorkoutForDay(workout)}
                                 >
                                   <Play className="h-4 w-4 mr-1" />
                                   Generate
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  onClick={() => {
-                                    // View existing generated workout
-                                    fetchWorkoutForScheduled(workout)
-                                  }}
-                                >
-                                  <Eye className="h-4 w-4 mr-1" />
-                                  View
                                 </Button>
                               )}
                               <Button
@@ -737,49 +760,13 @@ export function WorkoutCalendar() {
                               </Button>
                             </>
                           )}
+                          
+                          {/* Show locked state for future dates */}
                           {selectedDate && selectedDate > new Date() && (
                             <div className="flex items-center gap-2 text-muted-foreground">
                               <Lock className="h-4 w-4" />
                               <span className="text-sm">Locked</span>
                             </div>
-                          )}
-                          {selectedDate && isSameDay(selectedDate, new Date()) && !workout.completed && !workout.skipped && (
-                            <>
-                              {!workout.workout_id ? (
-                                <Button
-                                  size="sm"
-                                  onClick={() => generateWorkoutForDay(workout)}
-                                >
-                                  <Play className="h-4 w-4 mr-1" />
-                                  Generate
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  onClick={() => {
-                                    // View existing generated workout
-                                    fetchWorkoutForScheduled(workout)
-                                  }}
-                                >
-                                  <Eye className="h-4 w-4 mr-1" />
-                                  View
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => markWorkoutCompleted(workout.id)}
-                              >
-                                <Check className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => markWorkoutSkipped(workout.id)}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </>
                           )}
                         </div>
                       </div>
@@ -790,7 +777,7 @@ export function WorkoutCalendar() {
 
               {selectedDateCompletedWorkouts.length > 0 && (
                 <div>
-                  <h5 className="font-medium mb-3">Completed Workouts</h5>
+                  <h5 className="font-medium mb-3">Workouts Completed Today</h5>
                   <div className="space-y-3">
                     {selectedDateCompletedWorkouts.map((workout) => (
                       <div key={workout.id} className="p-4 border rounded-lg bg-green-800/20 border-green-700/30 cursor-pointer hover:bg-green-800/30 transition-colors"
