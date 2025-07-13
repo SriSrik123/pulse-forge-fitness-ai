@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
 import { Label } from "@/components/ui/label"
-import { CheckCircle, BookOpen } from "lucide-react"
+import { CheckCircle, BookOpen, Share2 } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
@@ -31,6 +31,37 @@ export function WorkoutCompletion({ workout, onComplete }: WorkoutCompletionProp
   const [feelingSlider, setFeelingSlider] = useState([3])
   const [isCompleting, setIsCompleting] = useState(false)
   const [showPerformanceTracker, setShowPerformanceTracker] = useState(true)
+
+  const handleShare = async () => {
+    const feelingValue = feelingOptions.find(f => f.value === feelingSlider[0])?.label || 'Okay'
+    const shareText = `Just completed my ${workout.title} workout! Feeling ${feelingValue.toLowerCase()} 💪 ${journalEntry ? `\n\n${journalEntry}` : ''}`
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Workout Completed!',
+          text: shareText,
+        })
+      } catch (error) {
+        // User cancelled sharing
+      }
+    } else {
+      // Fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(shareText)
+        toast({
+          title: "Copied to clipboard!",
+          description: "Share text has been copied to your clipboard.",
+        })
+      } catch (error) {
+        toast({
+          title: "Share not supported",
+          description: "Sharing is not supported on this device.",
+          variant: "destructive"
+        })
+      }
+    }
+  }
 
   const handleComplete = async () => {
     if (!user) return
@@ -129,23 +160,34 @@ export function WorkoutCompletion({ workout, onComplete }: WorkoutCompletionProp
             />
           </div>
 
-          <Button 
-            onClick={handleComplete}
-            disabled={isCompleting}
-            className="w-full pulse-gradient text-white font-semibold"
-          >
-            {isCompleting ? (
-              <>
-                <CheckCircle className="mr-2 h-4 w-4 animate-pulse" />
-                Completing...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Mark as Done
-              </>
-            )}
-          </Button>
+          <div className="flex gap-3">
+            <Button 
+              variant="outline"
+              onClick={handleShare}
+              className="flex-1"
+            >
+              <Share2 className="mr-2 h-4 w-4" />
+              Share
+            </Button>
+            
+            <Button 
+              onClick={handleComplete}
+              disabled={isCompleting}
+              className="flex-1 pulse-gradient text-white font-semibold"
+            >
+              {isCompleting ? (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4 animate-pulse" />
+                  Completing...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Mark as Done
+                </>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
