@@ -113,7 +113,7 @@ export function Dashboard({ onTabChange }: DashboardProps) {
                 key={workout.id}
                 className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
                   isCompleted 
-                    ? 'bg-green-50 border-green-200 hover:bg-green-100 text-green-800' 
+                    ? 'bg-pulse-blue/10 border-pulse-blue/20 hover:bg-pulse-blue/20' 
                     : workout.workout_type === 'training' 
                       ? 'bg-pulse-blue/10 border-pulse-blue/20 hover:bg-pulse-blue/20'
                       : 'bg-orange-500/10 border-orange-500/20 hover:bg-orange-500/20'
@@ -123,7 +123,7 @@ export function Dashboard({ onTabChange }: DashboardProps) {
                 <div className="flex items-center gap-3">
                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                      isCompleted 
-                       ? 'bg-green-500/20' 
+                       ? 'bg-pulse-blue/20' 
                        : workout.workout_type === 'training' 
                          ? 'bg-pulse-blue/20' 
                          : 'bg-orange-500/20'
@@ -145,7 +145,7 @@ export function Dashboard({ onTabChange }: DashboardProps) {
                 </div>
                  <Badge className={
                    isCompleted 
-                     ? 'bg-green-50 text-green-700 border-green-200'
+                     ? 'bg-pulse-blue/20 text-pulse-blue border-pulse-blue/30'
                      : workout.workout_type === 'training' 
                        ? 'bg-pulse-blue/20 text-pulse-blue border-pulse-blue/30'
                        : 'bg-orange-500/20 text-orange-500 border-orange-500/30'

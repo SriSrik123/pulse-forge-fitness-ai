@@ -628,7 +628,7 @@ export function WorkoutCalendar() {
                     ${isFuture ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
                     ${isSelected ? 'ring-2 ring-primary' : ''}
                     ${isToday ? 'bg-primary/10' : !isFuture ? 'hover:bg-muted/50' : ''}
-                    ${dayWorkouts.length > 0 && dayWorkouts.every(w => w.completed) ? 'bg-green-50 border-green-200' : ''}
+                    ${dayWorkouts.length > 0 && dayWorkouts.every(w => w.completed) ? 'bg-green-800/20 border-green-700/30' : ''}
                     ${dayEvents.length > 0 ? 'border-l-4 border-l-yellow-500' : ''}
                   `}
                   onClick={() => !isFuture && setSelectedDate(day)}
@@ -732,7 +732,7 @@ export function WorkoutCalendar() {
                       <div 
                         key={workout.id} 
                         className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-colors ${
-                          workout.completed ? 'bg-green-50 border-green-200' : 
+                          workout.completed ? 'bg-green-800/20 border-green-700/30' : 
                           workout.skipped ? 'bg-red-50 border-red-200' : 
                           'hover:bg-muted/50'
                         }`}
@@ -826,7 +826,7 @@ export function WorkoutCalendar() {
                   <h5 className="font-medium mb-3">Workouts Completed Today</h5>
                   <div className="space-y-3">
                     {selectedDateCompletedWorkouts.map((workout) => (
-                      <div key={workout.id} className="p-4 border rounded-lg bg-green-50 border-green-200 cursor-pointer hover:bg-green-100 transition-colors"
+                      <div key={workout.id} className="p-4 border rounded-lg bg-green-800/20 border-green-700/30 cursor-pointer hover:bg-green-800/30 transition-colors"
                            onClick={() => {
                              setSelectedWorkout(workout)
                              setShowWorkoutDialog(true)
