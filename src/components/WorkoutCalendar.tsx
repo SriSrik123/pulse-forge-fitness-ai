@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Play, X, Check, History, Plus, Trophy, Activity, Clock, Target, Zap, Eye, Lock } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Play, X, Check, History, Plus, Trophy, Activity, Clock, Target, Zap, Eye, Lock, RotateCcw } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
@@ -295,6 +295,35 @@ export function WorkoutCalendar() {
       toast({
         title: "Error",
         description: "Failed to mark workout as skipped",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const undoWorkoutCompletion = async (workoutId: string) => {
+    try {
+      const { error } = await supabase
+        .from('scheduled_workouts')
+        .update({ completed: false, skipped: false })
+        .eq('id', workoutId)
+
+      if (error) throw error
+
+      setScheduledWorkouts(prev => 
+        prev.map(w => w.id === workoutId ? { ...w, completed: false, skipped: false } : w)
+      )
+
+      toast({
+        title: "Completion Undone",
+        description: "Workout marked as incomplete",
+      })
+
+      // Trigger regeneration of future workouts
+      await regenerateFutureWorkouts(workoutId)
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to undo workout completion",
         variant: "destructive"
       })
     }
@@ -599,7 +628,7 @@ export function WorkoutCalendar() {
                     ${isFuture ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
                     ${isSelected ? 'ring-2 ring-primary' : ''}
                     ${isToday ? 'bg-primary/10' : !isFuture ? 'hover:bg-muted/50' : ''}
-                    ${dayWorkouts.length > 0 && dayWorkouts.every(w => w.completed) ? 'bg-green-800/20 border-green-700/30' : ''}
+                    ${dayWorkouts.length > 0 && dayWorkouts.every(w => w.completed) ? 'bg-green-50 border-green-200' : ''}
                     ${dayEvents.length > 0 ? 'border-l-4 border-l-yellow-500' : ''}
                   `}
                   onClick={() => !isFuture && setSelectedDate(day)}
@@ -700,7 +729,15 @@ export function WorkoutCalendar() {
                   <h5 className="font-medium mb-3">Scheduled Sessions</h5>
                   <div className="space-y-3">
                     {selectedDateWorkouts.map((workout) => (
-                      <div key={workout.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div 
+                        key={workout.id} 
+                        className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-colors ${
+                          workout.completed ? 'bg-green-50 border-green-200' : 
+                          workout.skipped ? 'bg-red-50 border-red-200' : 
+                          'hover:bg-muted/50'
+                        }`}
+                        onClick={() => workout.workout_id && fetchWorkoutForScheduled(workout)}
+                      >
                         <div className="flex items-center gap-3">
                           <span className="text-2xl">{getSportIcon(workout.sport)}</span>
                           <div>
@@ -709,18 +746,15 @@ export function WorkoutCalendar() {
                               {workout.session_time_of_day} • {workout.workout_type}
                             </p>
                           </div>
-                          <Badge variant={
-                            workout.completed ? "default" : 
-                            workout.skipped ? "destructive" : 
-                            "outline"
-                          }>
-                            {workout.completed ? "Completed" : 
-                             workout.skipped ? "Skipped" : 
-                             "Scheduled"}
-                          </Badge>
+                          {workout.completed && (
+                            <div className="w-3 h-3 rounded-full bg-green-500" />
+                          )}
+                          {workout.skipped && (
+                            <div className="w-3 h-3 rounded-full bg-red-500" />
+                          )}
                         </div>
                         
-                        <div className="flex gap-2">
+                        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                           {/* Always show view button if workout exists */}
                           {workout.workout_id && (
                             <Button
@@ -760,6 +794,18 @@ export function WorkoutCalendar() {
                               </Button>
                             </>
                           )}
+
+                          {/* Show undo button for completed/skipped workouts */}
+                          {(workout.completed || workout.skipped) && selectedDate && selectedDate <= new Date() && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => undoWorkoutCompletion(workout.id)}
+                            >
+                              <RotateCcw className="h-4 w-4 mr-1" />
+                              Undo
+                            </Button>
+                          )}
                           
                           {/* Show locked state for future dates */}
                           {selectedDate && selectedDate > new Date() && (
@@ -780,7 +826,7 @@ export function WorkoutCalendar() {
                   <h5 className="font-medium mb-3">Workouts Completed Today</h5>
                   <div className="space-y-3">
                     {selectedDateCompletedWorkouts.map((workout) => (
-                      <div key={workout.id} className="p-4 border rounded-lg bg-green-800/20 border-green-700/30 cursor-pointer hover:bg-green-800/30 transition-colors"
+                      <div key={workout.id} className="p-4 border rounded-lg bg-green-50 border-green-200 cursor-pointer hover:bg-green-100 transition-colors"
                            onClick={() => {
                              setSelectedWorkout(workout)
                              setShowWorkoutDialog(true)
