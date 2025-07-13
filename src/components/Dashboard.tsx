@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Activity, Target, Calendar, TrendingUp, Clock, Zap } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 import { useSportProfile } from "@/hooks/useSportProfile"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
@@ -12,9 +13,11 @@ import { format } from "date-fns"
 
 interface DashboardProps {
   onTabChange?: (tab: string, type?: string) => void
+  setActiveTab: (tab: string) => void
 }
 
-export function Dashboard({ onTabChange }: DashboardProps) {
+export function Dashboard({ onTabChange, setActiveTab }: DashboardProps) {
+  const { toast } = useToast()
   const { user } = useAuth()
   const { profile, getSportInfo, hasProfile } = useSportProfile()
   const [todayWorkouts, setTodayWorkouts] = useState<any[]>([])
@@ -161,7 +164,20 @@ export function Dashboard({ onTabChange }: DashboardProps) {
                       ? 'bg-pulse-blue/10 border-pulse-blue/20 hover:bg-pulse-blue/20'
                       : 'bg-orange-500/10 border-orange-500/20 hover:bg-orange-500/20'
                 }`}
-                onClick={() => onTabChange?.('workouts', workout.workout_type)}
+                onClick={() => {
+                  if (workout.workout_id) {
+                    setActiveTab('workouts')
+                    // Pass the workout ID to the workouts component
+                    setTimeout(() => {
+                      window.dispatchEvent(new CustomEvent('showWorkout', { detail: { workoutId: workout.workout_id } }))
+                    }, 100)
+                  } else {
+                    toast({
+                      title: "Generating Workout",
+                      description: "Please wait while we generate your workout...",
+                    })
+                  }
+                }}
               >
                 <div className="flex items-center gap-3">
                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${

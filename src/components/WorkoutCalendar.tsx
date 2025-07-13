@@ -405,26 +405,9 @@ export function WorkoutCalendar() {
   const fetchWorkoutForScheduled = async (scheduledWorkout: ScheduledWorkout) => {
     if (!scheduledWorkout.workout_id) return
 
-    try {
-      const { data: workout, error } = await supabase
-        .from('workouts')
-        .select('*')
-        .eq('id', scheduledWorkout.workout_id)
-        .single()
-
-      if (error) throw error
-
-      if (workout) {
-        setSelectedWorkout(workout)
-        setShowWorkoutDialog(true)
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to load workout details",
-        variant: "destructive"
-      })
-    }
+    // Navigate to workouts tab with the specific workout ID
+    window.location.hash = `workouts?workoutId=${scheduledWorkout.workout_id}`
+    window.location.reload()
   }
 
   const createEvent = async () => {

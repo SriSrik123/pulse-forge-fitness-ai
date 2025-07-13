@@ -432,6 +432,27 @@ export type Database = {
         }
         Relationships: []
       }
+      workout_likes: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          workout_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          workout_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          workout_id?: string
+        }
+        Relationships: []
+      }
       workout_performance: {
         Row: {
           created_at: string

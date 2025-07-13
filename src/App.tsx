@@ -13,6 +13,7 @@ import { Workouts } from "./components/Workouts"
 import { Friends } from "./components/Friends"
 import { Profile } from "./components/Profile"
 import { Achievements } from "./components/Achievements"
+import { LikedWorkouts } from "./components/LikedWorkouts"
 import { Coaching } from "./components/Coaching"
 import { ProgressAnalytics } from "./components/ProgressAnalytics"
 import { Settings } from "./components/Settings"
@@ -27,6 +28,7 @@ function AppContent() {
   const { user, loading } = useAuth()
   const { needsOnboarding, loading: onboardingLoading, completeOnboarding } = useOnboarding()
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null)
   const [workoutType, setWorkoutType] = useState<string | null>(null)
   const [showAchievements, setShowAchievements] = useState(false)
 
@@ -66,7 +68,7 @@ function AppContent() {
 
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard onTabChange={handleTabChange} />
+        return <Dashboard onTabChange={handleTabChange} setActiveTab={setActiveTab} />
       case 'workouts':
         return <Workouts workoutType={workoutType} />
       case 'coaching':
@@ -79,12 +81,25 @@ function AppContent() {
         return <WorkoutGenerator />
       case 'fitness-data':
         return <FitnessData />
+      case 'liked-workouts':
+        return (
+          <LikedWorkouts 
+            onShowWorkout={(workoutId) => {
+              setSelectedWorkoutId(workoutId)
+              setActiveTab('workouts')
+              // Trigger the event to show the specific workout
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('showWorkout', { detail: { workoutId } }))
+              }, 100)
+            }} 
+          />
+        )
       case 'profile':
         return <Profile onShowAchievements={() => setShowAchievements(true)} />
       case 'settings':
         return <Settings />
       default:
-        return <Dashboard onTabChange={handleTabChange} />
+        return <Dashboard onTabChange={handleTabChange} setActiveTab={setActiveTab} />
     }
   }
 
