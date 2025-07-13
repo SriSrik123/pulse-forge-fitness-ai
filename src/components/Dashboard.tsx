@@ -21,19 +21,6 @@ export function Dashboard({ onTabChange }: DashboardProps) {
   const [loading, setLoading] = useState(true)
   const sportInfo = getSportInfo(profile.primarySport)
 
-  const getDailyBlurb = () => {
-    const day = new Date().getDay()
-    const blurbs = [
-      "Sunday vibes! Time to prepare for an amazing week of training ahead. 🌟",
-      "Monday motivation! Let's crush this week with focused determination. 💪",
-      "Tuesday power! Build on yesterday's momentum and push your limits. 🔥", 
-      "Wednesday wisdom! You're halfway through - keep the energy flowing. ⚡",
-      "Thursday strength! The weekend is close, finish strong today. 🎯",
-      "Friday focus! End the week on a high note with your best effort. 🚀",
-      "Saturday surge! Weekend energy is here - make it count! ⭐"
-    ]
-    return blurbs[day]
-  }
 
   useEffect(() => {
     const fetchOrGenerateTodayWorkouts = async () => {
@@ -131,9 +118,6 @@ export function Dashboard({ onTabChange }: DashboardProps) {
         <p className="text-muted-foreground mb-2">
           {profile.experienceLevel} • {profile.competitiveLevel} level
         </p>
-        <p className="text-sm text-muted-foreground/80 italic">
-          {getDailyBlurb()}
-        </p>
       </div>
 
       <Card className="glass border-0">
@@ -197,9 +181,10 @@ export function Dashboard({ onTabChange }: DashboardProps) {
                   </div>
                    <div>
                      <div className="font-medium">{workout.title}</div>
-                     <div className="text-sm text-muted-foreground">
-                       {format(new Date(), 'EEEE')} • {workout.session_time_of_day || 'morning'} • {workout.sport}
-                     </div>
+                      <div className="text-sm text-muted-foreground">
+                        {format(new Date(), 'EEEE')} • {workout.session_time_of_day || 'morning'} • {workout.sport}
+                        {workout.workout_id ? ' • Workout Ready' : ' • Generating...'}
+                      </div>
                    </div>
                 </div>
                  <Badge className={
@@ -208,9 +193,9 @@ export function Dashboard({ onTabChange }: DashboardProps) {
                      : workout.workout_type === 'training' 
                        ? 'bg-pulse-blue/20 text-pulse-blue border-pulse-blue/30'
                        : 'bg-orange-500/20 text-orange-500 border-orange-500/30'
-                 }>
-                  {isCompleted ? 'Completed ✓' : 'Ready'}
-                </Badge>
+                  }>
+                   {isCompleted ? 'Completed ✓' : workout.workout_id ? 'Ready' : 'Generating...'}
+                 </Badge>
               </div>
             )
           })}
