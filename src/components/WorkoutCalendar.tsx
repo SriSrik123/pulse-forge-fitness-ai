@@ -12,6 +12,7 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Play, X, Check, Hi
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
+import { useSportProfile } from "@/hooks/useSportProfile"
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns"
 
 interface ScheduledWorkout {
@@ -56,6 +57,7 @@ interface ScheduledEvent {
 export function WorkoutCalendar() {
   const { user } = useAuth()
   const { toast } = useToast()
+  const { profile } = useSportProfile()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [scheduledWorkouts, setScheduledWorkouts] = useState<ScheduledWorkout[]>([])
   const [scheduledEvents, setScheduledEvents] = useState<ScheduledEvent[]>([])
@@ -341,6 +343,8 @@ export function WorkoutCalendar() {
 
   const generateWorkoutForDay = async (scheduledWorkout: ScheduledWorkout) => {
     try {
+      console.log('Generating workout for:', scheduledWorkout)
+      
       // Get previous workouts for context
       const { data: previousWorkouts } = await supabase
         .from('workouts')
@@ -350,55 +354,77 @@ export function WorkoutCalendar() {
         .order('created_at', { ascending: false })
         .limit(5)
 
-      const { data } = await supabase.functions.invoke('generate-workout', {
+      const { data, error } = await supabase.functions.invoke('generate-workout', {
         body: {
           workoutType: scheduledWorkout.workout_type,
           sport: scheduledWorkout.sport,
           sessionType: scheduledWorkout.workout_type,
-          scheduledWorkoutId: scheduledWorkout.id,
+          fitnessLevel: profile.experienceLevel || 'intermediate',
+          duration: profile.sessionDuration || 60,
+          equipment: [],
+          sportEquipmentList: [],
+          goals: `Improve ${scheduledWorkout.sport} performance`,
           previousWorkouts: previousWorkouts || [],
-          adaptToProgress: true,
-          userPreferences: ""
+          adaptToProgress: true
         }
       })
 
+      console.log('Generation response:', data, error)
+
+      if (error) {
+        console.error('Generation error:', error)
+        throw error
+      }
+
       if (data?.workout) {
         // Update the scheduled workout with the generated workout ID
-        await supabase
+        const { error: updateError } = await supabase
           .from('scheduled_workouts')
           .update({ workout_id: data.workout.id })
           .eq('id', scheduledWorkout.id)
 
+        if (updateError) {
+          console.error('Update error:', updateError)
+          throw updateError
+        }
+
         // Refresh the data to get the updated workout
         await fetchScheduledWorkouts()
         
-        // Now navigate to view the workout
-        window.dispatchEvent(new CustomEvent('showWorkout', { detail: { workoutId: data.workout.id } }))
-
         toast({
           title: "Workout Generated!",
           description: `${scheduledWorkout.title} is ready for today`,
         })
         
-        // Navigate to workouts tab
+        // Navigate to view the workout
+        window.dispatchEvent(new CustomEvent('showWorkout', { 
+          detail: { workoutId: data.workout.id } 
+        }))
         window.dispatchEvent(new CustomEvent('navigateToWorkouts'))
+      } else {
+        throw new Error('No workout data received')
       }
     } catch (error: any) {
+      console.error('Full generation error:', error)
       toast({
         title: "Error",
-        description: "Failed to generate workout",
+        description: error.message || "Failed to generate workout",
         variant: "destructive"
       })
     }
   }
 
   const handleWorkoutClick = async (workout: ScheduledWorkout) => {
+    console.log('Handling workout click:', workout)
+    
     if (workout.workout_id) {
       // Workout already exists, navigate to view it
+      console.log('Navigating to existing workout:', workout.workout_id)
       window.dispatchEvent(new CustomEvent('showWorkout', { detail: { workoutId: workout.workout_id } }))
       window.dispatchEvent(new CustomEvent('navigateToWorkouts'))
     } else {
       // Generate workout first, then view it
+      console.log('Generating new workout for:', workout.title)
       await generateWorkoutForDay(workout)
     }
   }

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -61,16 +62,37 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
   const [allScheduledWorkouts, setAllScheduledWorkouts] = useState<any[]>([])
 
   useEffect(() => {
+    console.log('WorkoutViewer useEffect triggered:', { workoutId, workoutType, selectedDate })
+    
     if (workoutId) {
+      console.log('Loading existing workout:', workoutId)
       loadExistingWorkout(workoutId)
     } else {
+      console.log('Loading scheduled workouts for date:', selectedDate)
       loadScheduledWorkouts()
     }
   }, [workoutType, workoutId, selectedDate])
 
+  // Listen for workout selection events
+  useEffect(() => {
+    const handleShowWorkout = (event: CustomEvent) => {
+      console.log('Show workout event received:', event.detail)
+      const { workoutId: eventWorkoutId } = event.detail
+      if (eventWorkoutId) {
+        loadExistingWorkout(eventWorkoutId)
+      }
+    }
+
+    window.addEventListener('showWorkout', handleShowWorkout as EventListener)
+    return () => {
+      window.removeEventListener('showWorkout', handleShowWorkout as EventListener)
+    }
+  }, [])
+
   const loadScheduledWorkouts = async () => {
     if (!user) return
 
+    console.log('Loading scheduled workouts for user:', user.id, 'date:', selectedDate)
     setLoading(true)
     try {
       const dateStr = format(selectedDate, 'yyyy-MM-dd')
@@ -83,6 +105,8 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
         .eq('scheduled_date', dateStr)
         .order('workout_type', { ascending: true })
 
+      console.log('Scheduled workouts loaded:', scheduledWorkouts, error)
+
       if (error) throw error
       
       setTodayWorkouts(scheduledWorkouts || [])
@@ -90,6 +114,7 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
       // If there's a completed workout, load the first one automatically
       const completedWorkout = scheduledWorkouts?.find(w => w.workout_id)
       if (completedWorkout && completedWorkout.workout_id) {
+        console.log('Auto-loading completed workout:', completedWorkout.workout_id)
         await loadExistingWorkout(completedWorkout.workout_id)
         return
       }
@@ -111,6 +136,7 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
   const loadExistingWorkout = async (id: string) => {
     if (!user) return
 
+    console.log('Loading existing workout:', id)
     setLoading(true)
     try {
       const { data: existingWorkout, error } = await supabase
@@ -119,6 +145,8 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
         .eq('id', id)
         .single()
         
+      console.log('Existing workout loaded:', existingWorkout, error)
+      
       if (error) throw error
       
       if (existingWorkout) {
@@ -134,6 +162,8 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
           exercises: exercises?.exercises || [],
           cooldown: exercises?.cooldown || []
         }
+        
+        console.log('Setting workout data:', workoutData)
         setWorkout(workoutData)
         
         // Check if workout is liked
@@ -168,12 +198,16 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
   }
 
   const handleTodayWorkoutClick = async (scheduledWorkout: any) => {
+    console.log('Today workout clicked:', scheduledWorkout)
+    
     if (scheduledWorkout.workout_id) {
       // Load existing workout
+      console.log('Loading existing workout from scheduled:', scheduledWorkout.workout_id)
       await loadExistingWorkout(scheduledWorkout.workout_id)
       setCurrentScheduledWorkoutId(scheduledWorkout.id)
     } else {
       // Generate new workout
+      console.log('Generating new workout for scheduled workout:', scheduledWorkout.id)
       setLoading(true)
       toast({
         title: "Generating Workout",
@@ -190,13 +224,13 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
           .order('created_at', { ascending: false })
           .limit(5)
 
-        const { data } = await supabase.functions.invoke('generate-workout', {
+        const { data, error } = await supabase.functions.invoke('generate-workout', {
           body: {
             workoutType: scheduledWorkout.workout_type,
             sport: scheduledWorkout.sport,
             sessionType: scheduledWorkout.workout_type,
-            fitnessLevel: profile.experienceLevel,
-            duration: profile.sessionDuration,
+            fitnessLevel: profile.experienceLevel || 'intermediate',
+            duration: profile.sessionDuration || 60,
             equipment: [],
             sportEquipmentList: [],
             goals: `Improve ${scheduledWorkout.sport} performance`,
@@ -204,6 +238,10 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
             adaptToProgress: true
           }
         })
+
+        console.log('Workout generation response:', data, error)
+
+        if (error) throw error
 
         if (data?.workout) {
           // Convert the generated workout to the expected format
@@ -218,6 +256,7 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
             cooldown: exercises?.cooldown || []
           }
           
+          console.log('Setting generated workout data:', workoutData)
           setWorkout(workoutData)
           setCurrentWorkoutId(data.workout.id)
           setCurrentScheduledWorkoutId(scheduledWorkout.id)
@@ -236,17 +275,13 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
             description: "Your personalized workout is ready.",
           })
         } else {
-          toast({
-            title: "Error",
-            description: "Failed to generate workout. Please try again.",
-            variant: "destructive"
-          })
+          throw new Error('No workout data received')
         }
       } catch (error: any) {
         console.error('Error generating workout:', error)
         toast({
           title: "Error",
-          description: "Failed to generate workout. Please try again.",
+          description: error.message || "Failed to generate workout. Please try again.",
           variant: "destructive"
         })
       } finally {
