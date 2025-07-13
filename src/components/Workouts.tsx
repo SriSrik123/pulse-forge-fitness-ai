@@ -1,8 +1,10 @@
+
 import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { WorkoutViewer } from "./WorkoutViewer"
 import { WorkoutPlanGenerator } from "./WorkoutPlanGenerator"
 import { WorkoutCalendar } from "./WorkoutCalendar"
+import { TodaysWorkouts } from "./TodaysWorkouts"
 import { Activity, Calendar, Settings, Eye } from "lucide-react"
 
 interface WorkoutsProps {
@@ -12,7 +14,6 @@ interface WorkoutsProps {
 export function Workouts({ workoutType }: WorkoutsProps) {
   const [activeTab, setActiveTab] = useState("plan")
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null)
-
 
   useEffect(() => {
     // Listen for workout selection events from dashboard
@@ -43,6 +44,9 @@ export function Workouts({ workoutType }: WorkoutsProps) {
           Generate individual workouts, create monthly plans, and track your progress
         </p>
       </div>
+
+      {/* Today's Workouts Section */}
+      <TodaysWorkouts />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
