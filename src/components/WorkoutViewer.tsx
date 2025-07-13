@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
-import { Activity, Clock, Target, Zap, Play, Edit3, Save, X, Download, Printer, Info, RotateCcw, HelpCircle, Heart } from "lucide-react"
+import { Activity, Clock, Target, Zap, Play, Edit3, Save, X, Download, Printer, Info, RotateCcw, HelpCircle, Heart, Eye } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { useSportProfile } from "@/hooks/useSportProfile"
