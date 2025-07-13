@@ -245,15 +245,14 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
 
         if (data?.workout) {
           // Convert the generated workout to the expected format
-          const exercises = data.workout.exercises as any
           const workoutData: WorkoutData = {
             title: data.workout.title,
-            type: data.workout.workout_type || scheduledWorkout.workout_type,
+            type: data.workout.type || scheduledWorkout.workout_type,
             sport: data.workout.sport,
             duration: data.workout.duration || 60,
-            warmup: exercises?.warmup || [],
-            exercises: exercises?.exercises || [],
-            cooldown: exercises?.cooldown || []
+            warmup: data.workout.warmup || [],
+            exercises: data.workout.exercises || [],
+            cooldown: data.workout.cooldown || []
           }
           
           console.log('Setting generated workout data:', workoutData)
