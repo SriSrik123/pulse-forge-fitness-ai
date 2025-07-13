@@ -48,6 +48,7 @@ export function WorkoutViewer({ workoutType }: WorkoutViewerProps = {}) {
   const [contextText, setContextText] = useState("")
   const [showSmartwatchEntry, setShowSmartwatchEntry] = useState(false)
   const [currentWorkoutId, setCurrentWorkoutId] = useState<string | null>(null)
+  const [currentScheduledWorkoutId, setCurrentScheduledWorkoutId] = useState<string | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
   const [showQuestions, setShowQuestions] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
@@ -82,6 +83,33 @@ export function WorkoutViewer({ workoutType }: WorkoutViewerProps = {}) {
       console.log('Found scheduled workout:', scheduledWorkout)
 
       if (scheduledWorkout) {
+        setCurrentScheduledWorkoutId(scheduledWorkout.id)
+        // Check if workout already exists
+        if (scheduledWorkout.workout_id) {
+          // Load existing workout
+          const { data: existingWorkout } = await supabase
+            .from('workouts')
+            .select('*')
+            .eq('id', scheduledWorkout.workout_id)
+            .single()
+            
+          if (existingWorkout) {
+            setCurrentWorkoutId(existingWorkout.id)
+            // Convert existing workout to expected format
+            const exercises = existingWorkout.exercises as any
+            const workoutData: WorkoutData = {
+              title: existingWorkout.title,
+              type: existingWorkout.workout_type,
+              sport: existingWorkout.sport,
+              duration: existingWorkout.duration || 60,
+              warmup: exercises?.warmup || [],
+              exercises: exercises?.exercises || [],
+              cooldown: exercises?.cooldown || []
+            }
+            setWorkout(workoutData)
+            return
+          }
+        }
         // Generate the actual workout content
         await generateWorkoutFromScheduled(scheduledWorkout)
       } else {
@@ -182,15 +210,17 @@ export function WorkoutViewer({ workoutType }: WorkoutViewerProps = {}) {
       }
 
       // Update scheduled workout if it exists
-      const today = new Date().toISOString().split('T')[0]
-      const { error: updateError } = await supabase
-        .from('scheduled_workouts')
-        .update({ completed: true })
-        .eq('user_id', user.id)
-        .eq('scheduled_date', today)
-        .eq('workout_type', workout.type)
+      if (currentScheduledWorkoutId) {
+        const { error: updateError } = await supabase
+          .from('scheduled_workouts')
+          .update({ 
+            completed: true,
+            workout_id: savedWorkout.id 
+          })
+          .eq('id', currentScheduledWorkoutId)
 
-      if (updateError) console.warn('No scheduled workout to update')
+        if (updateError) console.warn('Failed to update scheduled workout:', updateError)
+      }
 
     } catch (error) {
       toast({
