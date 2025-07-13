@@ -1,5 +1,5 @@
 
-import { Home, Activity, BarChart3, Users, MessageCircle, Heart } from "lucide-react"
+import { Home, Activity, BarChart3, Users, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "./ThemeToggle"
 import { ProfileDropdown } from "./ProfileDropdown"
@@ -31,15 +31,6 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onTabChange('liked-workouts')}
-              className="flex items-center gap-2"
-            >
-              <Heart className="h-4 w-4" />
-              <span className="hidden sm:inline">Liked</span>
-            </Button>
             <ThemeToggle />
             <ProfileDropdown onTabChange={onTabChange} />
           </div>

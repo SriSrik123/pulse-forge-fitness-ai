@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
-import { User, Settings, LogOut, Users, MessageSquarePlus } from "lucide-react"
+import { User, Settings, LogOut, Users, MessageSquarePlus, Heart } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
@@ -111,6 +111,13 @@ export function ProfileDropdown({ onTabChange }: ProfileDropdownProps) {
         >
           <User className="mr-2 h-4 w-4" />
           <span>Profile</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={() => onTabChange('liked-workouts')}
+          className="cursor-pointer"
+        >
+          <Heart className="mr-2 h-4 w-4" />
+          <span>Liked Workouts</span>
         </DropdownMenuItem>
         <DropdownMenuItem 
           onClick={() => onTabChange('friends')}

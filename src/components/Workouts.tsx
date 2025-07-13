@@ -10,14 +10,9 @@ interface WorkoutsProps {
 }
 
 export function Workouts({ workoutType }: WorkoutsProps) {
-  const [activeTab, setActiveTab] = useState(workoutType ? "workout" : "plan")
+  const [activeTab, setActiveTab] = useState("plan")
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (workoutType) {
-      setActiveTab("workout")
-    }
-  }, [workoutType])
 
   useEffect(() => {
     // Listen for workout selection events from dashboard
@@ -41,16 +36,11 @@ export function Workouts({ workoutType }: WorkoutsProps) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="workout" className="flex items-center gap-1 text-xs sm:text-sm">
-            <Activity className="h-4 w-4" />
-            <span className="hidden sm:inline">Today's Workout</span>
-            <span className="sm:hidden">Today</span>
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="plan" className="flex items-center gap-1 text-xs sm:text-sm">
             <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Monthly Plan</span>
-            <span className="sm:hidden">Plan</span>
+            <span className="hidden sm:inline">Training Manager</span>
+            <span className="sm:hidden">Training</span>
           </TabsTrigger>
           <TabsTrigger value="calendar" className="flex items-center gap-1 text-xs sm:text-sm">
             <Calendar className="h-4 w-4" />
@@ -63,10 +53,6 @@ export function Workouts({ workoutType }: WorkoutsProps) {
             <span className="sm:hidden">View</span>
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="workout" className="mt-6">
-          <WorkoutViewer workoutType={workoutType} />
-        </TabsContent>
 
         <TabsContent value="plan" className="mt-6">
           <WorkoutPlanGenerator />

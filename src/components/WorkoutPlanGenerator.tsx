@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Target, Plus, Minus } from "lucide-react"
+import { Calendar, Target, Plus, Minus, Activity } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { useSportProfile } from "@/hooks/useSportProfile"
 import { useToast } from "@/hooks/use-toast"
+import { DailyWorkoutGenerator } from "./DailyWorkoutGenerator"
 
 const SPORTS = [
   { value: "swimming", label: "Swimming", icon: "🏊‍♂️" },
@@ -212,12 +213,14 @@ export function WorkoutPlanGenerator() {
       <div className="text-center py-4">
         <div className="flex items-center justify-center gap-2 mb-2">
           <Calendar className="h-6 w-6" />
-          <h2 className="text-2xl font-bold">Monthly Workout Plan Generator</h2>
+          <h2 className="text-2xl font-bold">Training Manager</h2>
         </div>
         <p className="text-muted-foreground">
-          Create a personalized monthly training schedule with multiple sports and customizable frequency
+          Create monthly plans, generate daily workouts, and manage your training schedule
         </p>
       </div>
+
+      <DailyWorkoutGenerator />
 
       <Card className="glass border-0">
         <CardHeader>
