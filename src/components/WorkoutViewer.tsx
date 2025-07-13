@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
-import { Activity, Clock, Target, Zap, Play, Edit3, Save, X, Download, Printer, Info, RotateCcw, HelpCircle, Heart, Eye } from "lucide-react"
+import { Activity, Clock, Target, Zap, Play, Edit3, Save, X, Download, Printer, Info, RotateCcw, HelpCircle, Heart, Eye, ChevronLeft, ChevronRight } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { useSportProfile } from "@/hooks/useSportProfile"
@@ -58,35 +57,37 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
   const [showCompletion, setShowCompletion] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
   const [todayWorkouts, setTodayWorkouts] = useState<any[]>([])
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [allScheduledWorkouts, setAllScheduledWorkouts] = useState<any[]>([])
 
   useEffect(() => {
     if (workoutId) {
       loadExistingWorkout(workoutId)
     } else {
-      loadTodaysWorkout()
+      loadScheduledWorkouts()
     }
-  }, [workoutType, workoutId])
+  }, [workoutType, workoutId, selectedDate])
 
-  const loadTodaysWorkout = async () => {
+  const loadScheduledWorkouts = async () => {
     if (!user) return
 
     setLoading(true)
     try {
-      const today = format(new Date(), 'yyyy-MM-dd')
+      const dateStr = format(selectedDate, 'yyyy-MM-dd')
       
-      // Get today's scheduled workouts
+      // Get scheduled workouts for the selected date
       const { data: scheduledWorkouts, error } = await supabase
         .from('scheduled_workouts')
         .select('*')
         .eq('user_id', user.id)
-        .eq('scheduled_date', today)
+        .eq('scheduled_date', dateStr)
         .order('workout_type', { ascending: true })
 
       if (error) throw error
       
       setTodayWorkouts(scheduledWorkouts || [])
       
-      // If there's a completed workout, load the first one
+      // If there's a completed workout, load the first one automatically
       const completedWorkout = scheduledWorkouts?.find(w => w.workout_id)
       if (completedWorkout && completedWorkout.workout_id) {
         await loadExistingWorkout(completedWorkout.workout_id)
@@ -96,10 +97,10 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
       // If no workouts exist, show empty state
       setWorkout(null)
     } catch (error: any) {
-      console.error('Error loading today\'s workouts:', error)
+      console.error('Error loading scheduled workouts:', error)
       toast({
         title: "Error",
-        description: "Failed to load today's workouts",
+        description: "Failed to load scheduled workouts",
         variant: "destructive"
       })
     } finally {
@@ -172,6 +173,7 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
       await loadExistingWorkout(scheduledWorkout.workout_id)
     } else {
       // Generate new workout
+      setLoading(true)
       toast({
         title: "Generating Workout",
         description: "Please wait while we generate your workout...",
@@ -203,7 +205,18 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
         })
 
         if (data?.workout) {
-          setWorkout(data.workout)
+          // Convert the generated workout to the expected format
+          const workoutData: WorkoutData = {
+            title: data.workout.title,
+            type: data.workout.workout_type || scheduledWorkout.workout_type,
+            sport: data.workout.sport,
+            duration: data.workout.duration || 60,
+            warmup: data.workout.exercises?.warmup || [],
+            exercises: data.workout.exercises?.exercises || [],
+            cooldown: data.workout.exercises?.cooldown || []
+          }
+          
+          setWorkout(workoutData)
           setCurrentWorkoutId(data.workout.id)
           
           // Update scheduled workout with the generated workout ID
@@ -216,15 +229,34 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
             title: "Workout Generated!",
             description: "Your personalized workout is ready.",
           })
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to generate workout. Please try again.",
+            variant: "destructive"
+          })
         }
       } catch (error: any) {
+        console.error('Error generating workout:', error)
         toast({
           title: "Error",
           description: "Failed to generate workout. Please try again.",
           variant: "destructive"
         })
+      } finally {
+        setLoading(false)
       }
     }
+  }
+
+  const navigateDate = (direction: 'prev' | 'next') => {
+    const newDate = new Date(selectedDate)
+    if (direction === 'prev') {
+      newDate.setDate(newDate.getDate() - 1)
+    } else {
+      newDate.setDate(newDate.getDate() + 1)
+    }
+    setSelectedDate(newDate)
   }
 
   const saveWorkoutAndMarkComplete = async () => {
@@ -530,31 +562,54 @@ Generated by PulseTrack AI
 
   if (loading) {
     return (
-      <div className="space-y-6 animate-fade-in">
-        <div className="text-center py-8">
-          <Activity className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading your workout...</p>
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <Activity className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading your workout...</p>
         </div>
       </div>
     )
   }
 
-  // Show today's workouts if no specific workout is loaded
+  // Show scheduled workouts if no specific workout is loaded
   if (!workout && todayWorkouts.length > 0) {
     return (
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-4">
         <Card className="glass border-0">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Today's Workouts - {format(new Date(), 'EEEE, MMMM d')}
-            </CardTitle>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Scheduled Workouts
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigateDate('prev')}
+                  className="glass border-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-medium min-w-[120px] text-center">
+                  {format(selectedDate, 'MMM d, yyyy')}
+                </span>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigateDate('next')}
+                  className="glass border-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 pt-0">
             {todayWorkouts.map((scheduledWorkout) => (
               <div 
                 key={scheduledWorkout.id}
-                className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
                   scheduledWorkout.completed 
                     ? 'bg-green-500/10 border-green-500/20 hover:bg-green-500/20' 
                     : scheduledWorkout.workout_id
@@ -566,7 +621,7 @@ Generated by PulseTrack AI
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{getSportIcon(scheduledWorkout.sport)}</span>
                   <div>
-                    <div className="font-medium">{scheduledWorkout.title}</div>
+                    <div className="font-medium text-foreground">{scheduledWorkout.title}</div>
                     <div className="text-sm text-muted-foreground">
                       {scheduledWorkout.session_time_of_day} • {scheduledWorkout.workout_type}
                       {scheduledWorkout.workout_id ? ' • Ready to view' : ' • Click to generate'}
@@ -580,12 +635,12 @@ Generated by PulseTrack AI
                   {!scheduledWorkout.workout_id && (
                     <Play className="h-4 w-4 text-orange-500" />
                   )}
-                  <Badge className={
+                  <Badge variant="secondary" className={
                     scheduledWorkout.completed 
-                      ? 'bg-green-500/20 text-green-500 border-green-500/30'
+                      ? 'bg-green-500/20 text-green-700 border-green-500/30'
                       : scheduledWorkout.workout_id
                         ? 'bg-pulse-blue/20 text-pulse-blue border-pulse-blue/30'
-                        : 'bg-orange-500/20 text-orange-500 border-orange-500/30'
+                        : 'bg-orange-500/20 text-orange-600 border-orange-500/30'
                   }>
                     {scheduledWorkout.completed ? 'Completed ✓' : scheduledWorkout.workout_id ? 'Ready' : 'Generate'}
                   </Badge>
@@ -601,9 +656,31 @@ Generated by PulseTrack AI
   // Show empty state if no workouts
   if (!workout) {
     return (
-      <div className="space-y-6 animate-fade-in">
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">No workouts scheduled for today. Go to Training Manager to create a plan.</p>
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="mb-4">
+          <Activity className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+          <p className="text-muted-foreground">No workouts scheduled for {format(selectedDate, 'MMMM d, yyyy')}</p>
+          <p className="text-sm text-muted-foreground mt-2">Go to Training Manager to create a plan.</p>
+        </div>
+        <div className="flex items-center gap-2 mt-4">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => navigateDate('prev')}
+            className="glass border-0"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Previous Day
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => navigateDate('next')}
+            className="glass border-0"
+          >
+            Next Day
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
         </div>
       </div>
     )
@@ -635,8 +712,8 @@ Generated by PulseTrack AI
   const sportInfo = getSportInfo(workout.sport)
 
   return (
-    <div className="space-y-6 animate-fade-in bg-gradient-to-b from-background to-muted/30 min-h-screen p-4">
-      <div className="text-center py-6 glass border-0 rounded-xl">
+    <div className="space-y-4 animate-fade-in bg-gradient-to-b from-background to-muted/30 min-h-screen">
+      <div className="text-center py-4 glass border-0 rounded-xl">
         <div className="flex items-center justify-center gap-2 mb-2">
           <span className="text-3xl">{sportInfo.icon}</span>
           <h2 className="text-3xl font-bold text-foreground">{workout.title}</h2>
@@ -705,15 +782,15 @@ Generated by PulseTrack AI
 
       {/* Warm-up Section */}
       <Card className="glass border-0">
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-foreground">
             <Target className="h-5 w-5 text-orange-500" />
             Warm-up
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-2 pt-0">
           {workout.warmup.map((item, index) => (
-            <div key={index} className="p-4 bg-orange-500/10 rounded-lg border border-orange-500/20">
+            <div key={index} className="p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
               <div className="text-foreground font-medium">{item}</div>
             </div>
           ))}
@@ -722,7 +799,7 @@ Generated by PulseTrack AI
 
       {/* Main Workout Section */}
       <Card className="glass border-0">
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-foreground">
             <Zap className="h-5 w-5 text-primary" />
             Main Workout
@@ -732,7 +809,7 @@ Generated by PulseTrack AI
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-0">
           {workout.exercises.map((exercise, index) => (
             <div key={index} className="p-4 bg-primary/10 rounded-lg border border-primary/20 space-y-3">
               {workout.sport === 'swimming' ? (
@@ -785,15 +862,15 @@ Generated by PulseTrack AI
 
       {/* Cool-down Section */}
       <Card className="glass border-0">
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-foreground">
             <Activity className="h-5 w-5 text-green-500" />
             Cool-down
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-2 pt-0">
           {workout.cooldown.map((item, index) => (
-            <div key={index} className="p-4 bg-green-500/10 rounded-lg border border-green-500/20">
+            <div key={index} className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
               <div className="text-foreground font-medium">{item}</div>
             </div>
           ))}
