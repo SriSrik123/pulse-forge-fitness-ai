@@ -372,11 +372,8 @@ export function WorkoutCalendar() {
         // Refresh the data to get the updated workout
         await fetchScheduledWorkouts()
         
-        // Now fetch and show the workout
-        fetchWorkoutForScheduled({
-          ...scheduledWorkout,
-          workout_id: data.workout.id
-        })
+        // Now navigate to view the workout
+        window.dispatchEvent(new CustomEvent('showWorkout', { detail: { workoutId: data.workout.id } }))
 
         toast({
           title: "Workout Generated!",
@@ -397,19 +394,13 @@ export function WorkoutCalendar() {
 
   const handleWorkoutClick = async (workout: ScheduledWorkout) => {
     if (workout.workout_id) {
-      // Workout already exists, just view it
-      fetchWorkoutForScheduled(workout)
+      // Workout already exists, navigate to view it
+      window.dispatchEvent(new CustomEvent('showWorkout', { detail: { workoutId: workout.workout_id } }))
+      window.dispatchEvent(new CustomEvent('navigateToWorkouts'))
     } else {
       // Generate workout first, then view it
       await generateWorkoutForDay(workout)
     }
-  }
-
-  const fetchWorkoutForScheduled = async (scheduledWorkout: ScheduledWorkout) => {
-    if (!scheduledWorkout.workout_id) return
-
-    // Navigate to workouts tab and show the specific workout
-    window.dispatchEvent(new CustomEvent('showWorkout', { detail: { workoutId: scheduledWorkout.workout_id } }))
   }
 
   const createEvent = async () => {
@@ -494,12 +485,12 @@ export function WorkoutCalendar() {
             <div className="flex gap-2">
               <Dialog open={showEventDialog} onOpenChange={setShowEventDialog}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="glass border-0">
                     <Plus className="h-4 w-4 mr-1" />
                     Add Event
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="glass border-0">
                   <DialogHeader>
                     <DialogTitle>Add Game/Meet</DialogTitle>
                   </DialogHeader>
@@ -511,15 +502,16 @@ export function WorkoutCalendar() {
                         placeholder="vs Team Name / Regional Meet"
                         value={eventForm.title}
                         onChange={(e) => setEventForm(prev => ({ ...prev, title: e.target.value }))}
+                        className="glass border-0"
                       />
                     </div>
                     <div>
                       <Label htmlFor="event_type">Type</Label>
                       <Select value={eventForm.event_type} onValueChange={(value) => setEventForm(prev => ({ ...prev, event_type: value }))}>
-                        <SelectTrigger>
+                        <SelectTrigger className="glass border-0">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="glass border-0">
                           <SelectItem value="game">Game</SelectItem>
                           <SelectItem value="meet">Meet</SelectItem>
                           <SelectItem value="tournament">Tournament</SelectItem>
@@ -530,10 +522,10 @@ export function WorkoutCalendar() {
                     <div>
                       <Label htmlFor="sport">Sport *</Label>
                       <Select value={eventForm.sport} onValueChange={(value) => setEventForm(prev => ({ ...prev, sport: value }))}>
-                        <SelectTrigger>
+                        <SelectTrigger className="glass border-0">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="glass border-0">
                           <SelectItem value="soccer">Soccer</SelectItem>
                           <SelectItem value="basketball">Basketball</SelectItem>
                           <SelectItem value="tennis">Tennis</SelectItem>
@@ -551,6 +543,7 @@ export function WorkoutCalendar() {
                           type="date"
                           value={eventForm.scheduled_date}
                           onChange={(e) => setEventForm(prev => ({ ...prev, scheduled_date: e.target.value }))}
+                          className="glass border-0"
                         />
                       </div>
                       <div>
@@ -560,6 +553,7 @@ export function WorkoutCalendar() {
                           type="time"
                           value={eventForm.scheduled_time}
                           onChange={(e) => setEventForm(prev => ({ ...prev, scheduled_time: e.target.value }))}
+                          className="glass border-0"
                         />
                       </div>
                     </div>
@@ -570,6 +564,7 @@ export function WorkoutCalendar() {
                         placeholder="Team Name / Event Name"
                         value={eventForm.opponent}
                         onChange={(e) => setEventForm(prev => ({ ...prev, opponent: e.target.value }))}
+                        className="glass border-0"
                       />
                     </div>
                     <div>
@@ -579,6 +574,7 @@ export function WorkoutCalendar() {
                         placeholder="Stadium, Pool, Track"
                         value={eventForm.location}
                         onChange={(e) => setEventForm(prev => ({ ...prev, location: e.target.value }))}
+                        className="glass border-0"
                       />
                     </div>
                     <div>
@@ -588,6 +584,7 @@ export function WorkoutCalendar() {
                         placeholder="Additional notes..."
                         value={eventForm.notes}
                         onChange={(e) => setEventForm(prev => ({ ...prev, notes: e.target.value }))}
+                        className="glass border-0"
                       />
                     </div>
                     <Button onClick={createEvent} className="w-full">
@@ -596,10 +593,10 @@ export function WorkoutCalendar() {
                   </div>
                 </DialogContent>
               </Dialog>
-              <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')}>
+              <Button variant="outline" size="sm" onClick={() => navigateMonth('prev')} className="glass border-0">
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" onClick={() => navigateMonth('next')}>
+              <Button variant="outline" size="sm" onClick={() => navigateMonth('next')} className="glass border-0">
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -626,7 +623,7 @@ export function WorkoutCalendar() {
                 <div
                   key={day.toISOString()}
                   className={`
-                    min-h-[80px] p-2 border rounded-lg transition-all relative
+                    min-h-[80px] p-2 border rounded-lg transition-all relative glass border-0
                     ${isFuture ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
                     ${isSelected ? 'ring-2 ring-primary' : ''}
                     ${isToday ? 'bg-primary/10' : !isFuture ? 'hover:bg-muted/50' : ''}
@@ -705,7 +702,7 @@ export function WorkoutCalendar() {
                   </h5>
                   <div className="space-y-3">
                     {selectedDateEvents.map((event) => (
-                      <div key={event.id} className="p-3 border rounded-lg bg-yellow-50 border-yellow-200">
+                      <div key={event.id} className="p-3 border rounded-lg glass border-0 bg-yellow-50/10 border-yellow-200/20">
                         <div className="flex items-center justify-between">
                           <div>
                             <h6 className="font-medium">{event.title}</h6>
@@ -716,7 +713,7 @@ export function WorkoutCalendar() {
                               {event.location && ` • ${event.location}`}
                             </p>
                           </div>
-                          <Badge variant="outline" className="border-yellow-600 text-yellow-700">
+                          <Badge variant="outline" className="border-yellow-600/30 text-yellow-700">
                             {event.event_type}
                           </Badge>
                         </div>
@@ -733,9 +730,9 @@ export function WorkoutCalendar() {
                     {selectedDateWorkouts.map((workout) => (
                       <div 
                         key={workout.id} 
-                        className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-colors ${
+                        className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-colors glass border-0 ${
                           workout.completed ? 'bg-green-800/20 border-green-700/30 hover:bg-green-800/30' : 
-                          workout.skipped ? 'bg-red-50 border-red-200 hover:bg-red-100' : 
+                          workout.skipped ? 'bg-red-50/10 border-red-200/20 hover:bg-red-100/10' : 
                           'hover:bg-muted/50'
                         }`}
                         onClick={() => selectedDate && selectedDate <= new Date() && handleWorkoutClick(workout)}
@@ -769,6 +766,7 @@ export function WorkoutCalendar() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleWorkoutClick(workout)}
+                              className="glass border-0"
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               View
@@ -781,6 +779,7 @@ export function WorkoutCalendar() {
                               size="sm"
                               variant="outline"
                               onClick={() => undoWorkoutCompletion(workout.id)}
+                              className="glass border-0"
                             >
                               <RotateCcw className="h-4 w-4 mr-1" />
                               Undo
@@ -806,7 +805,7 @@ export function WorkoutCalendar() {
                   <h5 className="font-medium mb-3">Workouts Completed Today</h5>
                   <div className="space-y-3">
                     {selectedDateCompletedWorkouts.map((workout) => (
-                      <div key={workout.id} className="p-4 border rounded-lg bg-green-800/20 border-green-700/30 cursor-pointer hover:bg-green-800/30 transition-colors"
+                      <div key={workout.id} className="p-4 border rounded-lg glass border-0 bg-green-800/20 border-green-700/30 cursor-pointer hover:bg-green-800/30 transition-colors"
                            onClick={() => {
                              setSelectedWorkout(workout)
                              setShowWorkoutDialog(true)
@@ -829,7 +828,7 @@ export function WorkoutCalendar() {
                                  workout.feeling === 'good' ? '😊' : 
                                  workout.feeling === 'great' ? '🤩' : '😐'}
                               </span>
-                              <Badge variant="outline" className="bg-white text-xs capitalize">
+                              <Badge variant="outline" className="glass border-0 text-xs capitalize">
                                 {workout.feeling.replace('-', ' ')}
                               </Badge>
                             </div>
@@ -837,7 +836,7 @@ export function WorkoutCalendar() {
                           <Eye className="h-4 w-4 text-muted-foreground" />
                         </div>
                         {workout.journal_entry && (
-                          <div className="mt-2 p-2 bg-white rounded border">
+                          <div className="mt-2 p-2 glass border-0 rounded border">
                             <p className="text-sm italic">"{workout.journal_entry}"</p>
                           </div>
                         )}
@@ -878,7 +877,7 @@ export function WorkoutCalendar() {
                     {selectedWorkout.workout_type}
                   </Badge>
                   {selectedWorkout.duration && (
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="glass border-0">
                       <Clock className="h-3 w-3 mr-1" />
                       {selectedWorkout.duration} min
                     </Badge>
@@ -907,7 +906,7 @@ export function WorkoutCalendar() {
                     {selectedWorkout.journal_entry && (
                       <div>
                         <h4 className="font-medium mb-2">Journal Entry:</h4>
-                        <p className="text-sm italic bg-muted/50 p-3 rounded border">{selectedWorkout.journal_entry}"</p>
+                        <p className="text-sm italic glass border-0 p-3 rounded border">{selectedWorkout.journal_entry}"</p>
                       </div>
                     )}
                   </CardContent>
@@ -953,7 +952,7 @@ export function WorkoutCalendar() {
                       <CardContent className="pt-0">
                         <div className="space-y-4">
                           {selectedWorkout.exercises.exercises.map((exercise: any, index: number) => (
-                            <div key={index} className="p-3 bg-muted/50 rounded border">
+                            <div key={index} className="p-3 glass border-0 rounded border">
                               <h5 className="font-medium mb-1">{exercise.name}</h5>
                               <p className="text-sm text-muted-foreground mb-2">
                                 {exercise.sets} sets × {exercise.reps} reps
