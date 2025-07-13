@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { WorkoutViewer } from "./WorkoutViewer"
 import { WorkoutPlanGenerator } from "./WorkoutPlanGenerator"
 import { WorkoutCalendar } from "./WorkoutCalendar"
-import { TodaysWorkouts } from "./TodaysWorkouts"
 import { Activity, Calendar, Settings, Eye } from "lucide-react"
 
 interface WorkoutsProps {
@@ -12,7 +11,7 @@ interface WorkoutsProps {
 }
 
 export function Workouts({ workoutType }: WorkoutsProps) {
-  const [activeTab, setActiveTab] = useState("plan")
+  const [activeTab, setActiveTab] = useState("viewer")
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -25,7 +24,7 @@ export function Workouts({ workoutType }: WorkoutsProps) {
 
     // Listen for navigation to workouts tab
     const handleNavigateToWorkouts = () => {
-      setActiveTab("plan")
+      setActiveTab("viewer")
     }
 
     window.addEventListener('showWorkout', handleShowWorkout as EventListener)
@@ -45,11 +44,13 @@ export function Workouts({ workoutType }: WorkoutsProps) {
         </p>
       </div>
 
-      {/* Today's Workouts Section */}
-      <TodaysWorkouts />
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="viewer" className="flex items-center gap-1 text-xs sm:text-sm">
+            <Eye className="h-4 w-4" />
+            <span className="hidden sm:inline">Today's Workout</span>
+            <span className="sm:hidden">Today</span>
+          </TabsTrigger>
           <TabsTrigger value="plan" className="flex items-center gap-1 text-xs sm:text-sm">
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Training Manager</span>
@@ -60,12 +61,11 @@ export function Workouts({ workoutType }: WorkoutsProps) {
             <span className="hidden sm:inline">Calendar & History</span>
             <span className="sm:hidden">Calendar</span>
           </TabsTrigger>
-          <TabsTrigger value="viewer" className="flex items-center gap-1 text-xs sm:text-sm">
-            <Eye className="h-4 w-4" />
-            <span className="hidden sm:inline">Workout</span>
-            <span className="sm:hidden">View</span>
-          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="viewer" className="mt-6">
+          <WorkoutViewer workoutId={selectedWorkoutId} />
+        </TabsContent>
 
         <TabsContent value="plan" className="mt-6">
           <WorkoutPlanGenerator />
@@ -73,16 +73,6 @@ export function Workouts({ workoutType }: WorkoutsProps) {
 
         <TabsContent value="calendar" className="mt-6">
           <WorkoutCalendar />
-        </TabsContent>
-
-        <TabsContent value="viewer" className="mt-6">
-          {selectedWorkoutId ? (
-            <WorkoutViewer workoutId={selectedWorkoutId} />
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">Select a workout to view</p>
-            </div>
-          )}
         </TabsContent>
       </Tabs>
     </div>

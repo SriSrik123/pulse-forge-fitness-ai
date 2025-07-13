@@ -13,6 +13,7 @@ import { SmartwatchDataEntry } from "./SmartwatchDataEntry"
 import { WorkoutFeedback } from "./WorkoutFeedback"
 import { WorkoutQuestions } from "./WorkoutQuestions"
 import { WorkoutCompletion } from "./WorkoutCompletion"
+import { format } from "date-fns"
 
 interface Exercise {
   name: string
@@ -55,6 +56,7 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
   const [regenerating, setRegenerating] = useState(false)
   const [showCompletion, setShowCompletion] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
+  const [todayWorkouts, setTodayWorkouts] = useState<any[]>([])
 
   useEffect(() => {
     if (workoutId) {
@@ -63,6 +65,46 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
       loadTodaysWorkout()
     }
   }, [workoutType, workoutId])
+
+  const loadTodaysWorkout = async () => {
+    if (!user) return
+
+    setLoading(true)
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd')
+      
+      // Get today's scheduled workouts
+      const { data: scheduledWorkouts, error } = await supabase
+        .from('scheduled_workouts')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('scheduled_date', today)
+        .order('workout_type', { ascending: true })
+
+      if (error) throw error
+      
+      setTodayWorkouts(scheduledWorkouts || [])
+      
+      // If there's a completed workout, load the first one
+      const completedWorkout = scheduledWorkouts?.find(w => w.workout_id)
+      if (completedWorkout && completedWorkout.workout_id) {
+        await loadExistingWorkout(completedWorkout.workout_id)
+        return
+      }
+      
+      // If no workouts exist, show empty state
+      setWorkout(null)
+    } catch (error: any) {
+      console.error('Error loading today\'s workouts:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load today's workouts",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const loadExistingWorkout = async (id: string) => {
     if (!user) return
@@ -107,108 +149,80 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
     }
   }
 
-  const loadTodaysWorkout = async () => {
-    if (!user) return
-
-    setLoading(true)
-    try {
-      const today = new Date().toISOString().split('T')[0]
-      
-      // Determine the workout type mapping
-      const workoutTypeForQuery = workoutType === 'strength' ? 'strength' : 
-                                 workoutType === 'training' ? 'training' : 'training'
-      
-      console.log('Loading workout for type:', workoutType, 'mapped to:', workoutTypeForQuery)
-      
-      // First try to get scheduled workout for today
-      const { data: scheduledWorkout } = await supabase
-        .from('scheduled_workouts')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('scheduled_date', today)
-        .eq('workout_type', workoutTypeForQuery)
-        .maybeSingle()
-
-      console.log('Found scheduled workout:', scheduledWorkout)
-
-      if (scheduledWorkout) {
-        setCurrentScheduledWorkoutId(scheduledWorkout.id)
-        // Check if workout already exists
-        if (scheduledWorkout.workout_id) {
-          // Load existing workout
-          await loadExistingWorkout(scheduledWorkout.workout_id)
-          return
-        }
-        // Generate the actual workout content
-        await generateWorkoutFromScheduled(scheduledWorkout)
-      } else {
-        // Fallback to generating new workout
-        await generateWorkout()
-      }
-    } catch (error: any) {
-      console.error('Error loading workout:', error)
-      await generateWorkout()
-    } finally {
-      setLoading(false)
+  const getSportIcon = (sport: string) => {
+    const icons: Record<string, string> = {
+      swimming: "🏊‍♂️",
+      running: "🏃‍♂️", 
+      cycling: "🚴‍♂️",
+      basketball: "🏀",
+      soccer: "⚽",
+      tennis: "🎾",
+      weightlifting: "🏋️‍♀️",
+      strength: "💪",
+      cardio: "❤️",
+      yoga: "🧘‍♀️"
     }
+    return icons[sport] || "💪"
   }
 
-  const generateWorkoutFromScheduled = async (scheduledWorkout: any) => {
-    try {
-      // Use the scheduled workout's sport and type directly
-      const sport = scheduledWorkout.sport
-      const sessionType = scheduledWorkout.workout_type
-      
-      console.log('Generating workout from scheduled:', { sport, sessionType, scheduledWorkout })
-      
-      // Get previous workouts for context
-      const { data: previousWorkouts } = await supabase
-        .from('workouts')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('sport', sport)
-        .order('created_at', { ascending: false })
-        .limit(5)
-
-      // Generate context text
-      if (previousWorkouts && previousWorkouts.length > 0) {
-        const lastWorkout = previousWorkouts[0]
-        const lastWorkoutType = lastWorkout.workout_type === 'strength' ? 'strength training' : lastWorkout.sport
-        const focusArea = getWorkoutFocus(lastWorkout)
-        const todayFocus = getTodayFocus(workoutType, sport)
-        
-        setContextText(`Yesterday you did a ${lastWorkoutType} session focused on ${focusArea}, so today you should do ${sessionType} and focus on ${todayFocus}.`)
-      }
-
-      const { data } = await supabase.functions.invoke('generate-workout', {
-        body: {
-          workoutType: sessionType,
-          sport: sport,
-          sessionType: sessionType,
-          fitnessLevel: profile.experienceLevel,
-          duration: workoutType === 'strength' ? 45 : profile.sessionDuration,
-          equipment: [],
-          sportEquipmentList: getEquipmentList(sport),
-          goals: `Improve ${sport} performance`,
-          previousWorkouts: previousWorkouts || [],
-          adaptToProgress: true
-        }
-      })
-
-      if (data?.workout) {
-        setWorkout(data.workout)
-        
-        // Check if workout is liked when loading
-        if (currentWorkoutId) {
-          await checkIfLiked(currentWorkoutId)
-        }
-      }
-    } catch (error: any) {
+  const handleTodayWorkoutClick = async (scheduledWorkout: any) => {
+    if (scheduledWorkout.workout_id) {
+      // Load existing workout
+      await loadExistingWorkout(scheduledWorkout.workout_id)
+    } else {
+      // Generate new workout
       toast({
-        title: "Error",
-        description: "Failed to load scheduled workout",
-        variant: "destructive"
+        title: "Generating Workout",
+        description: "Please wait while we generate your workout...",
       })
+      
+      try {
+        // Get previous workouts for context
+        const { data: previousWorkouts } = await supabase
+          .from('workouts')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('sport', scheduledWorkout.sport)
+          .order('created_at', { ascending: false })
+          .limit(5)
+
+        const { data } = await supabase.functions.invoke('generate-workout', {
+          body: {
+            workoutType: scheduledWorkout.workout_type,
+            sport: scheduledWorkout.sport,
+            sessionType: scheduledWorkout.workout_type,
+            fitnessLevel: profile.experienceLevel,
+            duration: profile.sessionDuration,
+            equipment: [],
+            sportEquipmentList: [],
+            goals: `Improve ${scheduledWorkout.sport} performance`,
+            previousWorkouts: previousWorkouts || [],
+            adaptToProgress: true
+          }
+        })
+
+        if (data?.workout) {
+          setWorkout(data.workout)
+          setCurrentWorkoutId(data.workout.id)
+          
+          // Update scheduled workout with the generated workout ID
+          await supabase
+            .from('scheduled_workouts')
+            .update({ workout_id: data.workout.id })
+            .eq('id', scheduledWorkout.id)
+          
+          toast({
+            title: "Workout Generated!",
+            description: "Your personalized workout is ready.",
+          })
+        }
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: "Failed to generate workout. Please try again.",
+          variant: "destructive"
+        })
+      }
     }
   }
 
@@ -329,7 +343,7 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
           fitnessLevel: profile.experienceLevel,
           duration: workoutType === 'strength' ? 45 : profile.sessionDuration,
           equipment: [],
-          sportEquipmentList: getEquipmentList(sport),
+          sportEquipmentList: [],
           goals: `Improve ${sport} performance`,
           previousWorkouts: previousWorkouts || [],
           adaptToProgress: true,
@@ -355,35 +369,6 @@ export function WorkoutViewer({ workoutType, workoutId }: WorkoutViewerProps = {
   const handleRegenerateWorkout = async (feedback: string) => {
     setRegenerating(true)
     await generateWorkout(feedback)
-  }
-
-  const getWorkoutFocus = (workout: any) => {
-    if (workout.workout_type === 'strength') return 'building strength and muscle'
-    if (workout.sport === 'swimming') return 'technique and endurance'
-    if (workout.sport === 'running') return 'speed and endurance'
-    if (workout.sport === 'cycling') return 'power and endurance'
-    return 'skill development'
-  }
-
-  const getTodayFocus = (workoutType: string, sport: string) => {
-    if (workoutType === 'strength') return 'progressive overload and compound movements'
-    if (sport === 'swimming') return 'stroke efficiency and conditioning'
-    if (sport === 'running') return 'form and pacing'
-    if (sport === 'cycling') return 'cadence and power'
-    return 'technique refinement'
-  }
-
-  const getEquipmentList = (sport: string) => {
-    const equipmentMap: Record<string, string[]> = {
-      swimming: ['pool', 'kickboard', 'pull buoy', 'fins', 'paddles', 'diving boards'],
-      running: ['treadmill', 'track', 'timer', 'cones'],
-      cycling: ['bike', 'trainer', 'power meter', 'computer'],
-      weightlifting: ['barbell', 'dumbbells', 'plates', 'bench', 'rack', 'cables'],
-      basketball: ['ball', 'hoop', 'cones', 'agility ladder'],
-      tennis: ['racket', 'balls', 'net', 'court', 'cones'],
-      soccer: ['ball', 'goals', 'cones', 'field']
-    }
-    return equipmentMap[sport] || []
   }
 
   const downloadWorkout = () => {
@@ -547,20 +532,77 @@ Generated by PulseTrack AI
       <div className="space-y-6 animate-fade-in">
         <div className="text-center py-8">
           <Activity className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Generating your workout...</p>
+          <p>Loading your workout...</p>
         </div>
       </div>
     )
   }
 
+  // Show today's workouts if no specific workout is loaded
+  if (!workout && todayWorkouts.length > 0) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <Card className="glass border-0">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Today's Workouts - {format(new Date(), 'EEEE, MMMM d')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {todayWorkouts.map((scheduledWorkout) => (
+              <div 
+                key={scheduledWorkout.id}
+                className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                  scheduledWorkout.completed 
+                    ? 'bg-green-500/10 border-green-500/20 hover:bg-green-500/20' 
+                    : scheduledWorkout.workout_id
+                      ? 'bg-pulse-blue/10 border-pulse-blue/20 hover:bg-pulse-blue/20'
+                      : 'bg-orange-500/10 border-orange-500/20 hover:bg-orange-500/20'
+                }`}
+                onClick={() => handleTodayWorkoutClick(scheduledWorkout)}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{getSportIcon(scheduledWorkout.sport)}</span>
+                  <div>
+                    <div className="font-medium">{scheduledWorkout.title}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {scheduledWorkout.session_time_of_day} • {scheduledWorkout.workout_type}
+                      {scheduledWorkout.workout_id ? ' • Ready to view' : ' • Click to generate'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {scheduledWorkout.workout_id && (
+                    <Eye className="h-4 w-4 text-pulse-blue" />
+                  )}
+                  {!scheduledWorkout.workout_id && (
+                    <Play className="h-4 w-4 text-orange-500" />
+                  )}
+                  <Badge className={
+                    scheduledWorkout.completed 
+                      ? 'bg-green-500/20 text-green-500 border-green-500/30'
+                      : scheduledWorkout.workout_id
+                        ? 'bg-pulse-blue/20 text-pulse-blue border-pulse-blue/30'
+                        : 'bg-orange-500/20 text-orange-500 border-orange-500/30'
+                  }>
+                    {scheduledWorkout.completed ? 'Completed ✓' : scheduledWorkout.workout_id ? 'Ready' : 'Generate'}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Show empty state if no workouts
   if (!workout) {
     return (
       <div className="space-y-6 animate-fade-in">
         <div className="text-center py-8">
-          <p>Failed to generate workout. Please try again.</p>
-          <Button onClick={() => generateWorkout()} className="mt-4">
-            Retry
-          </Button>
+          <p className="text-muted-foreground">No workouts scheduled for today. Go to Training Manager to create a plan.</p>
         </div>
       </div>
     )
