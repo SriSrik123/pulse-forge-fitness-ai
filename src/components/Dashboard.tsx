@@ -92,6 +92,56 @@ export function Dashboard({ onTabChange, setActiveTab }: DashboardProps) {
     fetchOrGenerateTodayWorkouts()
   }, [user, profile.primarySport, profile.trainingFrequency])
 
+  const generateWorkoutForScheduled = async (scheduledWorkout: any) => {
+    try {
+      // Get previous workouts for context
+      const { data: previousWorkouts } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('sport', scheduledWorkout.sport)
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      const { data } = await supabase.functions.invoke('generate-workout', {
+        body: {
+          workoutType: scheduledWorkout.workout_type,
+          sport: scheduledWorkout.sport,
+          sessionType: scheduledWorkout.workout_type,
+          scheduledWorkoutId: scheduledWorkout.id,
+          previousWorkouts: previousWorkouts || [],
+          adaptToProgress: true,
+          userPreferences: ""
+        }
+      })
+
+      if (data?.workout) {
+        // Update the scheduled workout with the generated workout ID
+        await supabase
+          .from('scheduled_workouts')
+          .update({ workout_id: data.workout.id })
+          .eq('id', scheduledWorkout.id)
+        
+        toast({
+          title: "Workout Generated!",
+          description: `${scheduledWorkout.title} is ready for today`,
+        })
+
+        // Navigate to workouts tab and show the generated workout
+        setActiveTab('workouts')
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('showWorkout', { detail: { workoutId: data.workout.id } }))
+        }, 100)
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to generate workout",
+        variant: "destructive"
+      })
+    }
+  }
+
   if (!hasProfile()) {
     return (
       <div className="space-y-6 animate-fade-in">
@@ -176,6 +226,9 @@ export function Dashboard({ onTabChange, setActiveTab }: DashboardProps) {
                       title: "Generating Workout",
                       description: "Please wait while we generate your workout...",
                     })
+                    
+                    // Generate the workout and navigate to workouts tab
+                    generateWorkoutForScheduled(workout)
                   }
                 }}
               >

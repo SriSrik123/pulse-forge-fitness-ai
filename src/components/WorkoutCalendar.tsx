@@ -382,6 +382,9 @@ export function WorkoutCalendar() {
           title: "Workout Generated!",
           description: `${scheduledWorkout.title} is ready for today`,
         })
+        
+        // Navigate to workouts tab
+        window.dispatchEvent(new CustomEvent('navigateToWorkouts'))
       }
     } catch (error: any) {
       toast({
@@ -405,9 +408,8 @@ export function WorkoutCalendar() {
   const fetchWorkoutForScheduled = async (scheduledWorkout: ScheduledWorkout) => {
     if (!scheduledWorkout.workout_id) return
 
-    // Navigate to workouts tab with the specific workout ID
-    window.location.hash = `workouts?workoutId=${scheduledWorkout.workout_id}`
-    window.location.reload()
+    // Navigate to workouts tab and show the specific workout
+    window.dispatchEvent(new CustomEvent('showWorkout', { detail: { workoutId: scheduledWorkout.workout_id } }))
   }
 
   const createEvent = async () => {
@@ -761,6 +763,18 @@ export function WorkoutCalendar() {
                         </div>
                         
                         <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                          {/* Show view button for workouts with generated content */}
+                          {workout.workout_id && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleWorkoutClick(workout)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                          )}
+                          
                           {/* Show undo button for completed/skipped workouts */}
                           {(workout.completed || workout.skipped) && selectedDate && selectedDate <= new Date() && (
                             <Button

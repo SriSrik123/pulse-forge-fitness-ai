@@ -22,8 +22,17 @@ export function Workouts({ workoutType }: WorkoutsProps) {
       setActiveTab("viewer")
     }
 
+    // Listen for navigation to workouts tab
+    const handleNavigateToWorkouts = () => {
+      setActiveTab("plan")
+    }
+
     window.addEventListener('showWorkout', handleShowWorkout as EventListener)
-    return () => window.removeEventListener('showWorkout', handleShowWorkout as EventListener)
+    window.addEventListener('navigateToWorkouts', handleNavigateToWorkouts as EventListener)
+    return () => {
+      window.removeEventListener('showWorkout', handleShowWorkout as EventListener)
+      window.removeEventListener('navigateToWorkouts', handleNavigateToWorkouts as EventListener)
+    }
   }, [])
 
   return (
