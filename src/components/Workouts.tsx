@@ -13,12 +13,22 @@ interface WorkoutsProps {
 export function Workouts({ workoutType }: WorkoutsProps) {
   const [activeTab, setActiveTab] = useState("viewer")
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null)
+  const [generatedWorkoutData, setGeneratedWorkoutData] = useState<any>(null)
 
   useEffect(() => {
     // Listen for workout selection events from dashboard
     const handleShowWorkout = (event: CustomEvent) => {
       const { workoutId } = event.detail
       setSelectedWorkoutId(workoutId)
+      setGeneratedWorkoutData(null) // Clear generated workout data
+      setActiveTab("viewer")
+    }
+
+    // Listen for generated workout events from DailyWorkoutGenerator
+    const handleShowGeneratedWorkout = (event: CustomEvent) => {
+      const { workoutData } = event.detail
+      setGeneratedWorkoutData(workoutData)
+      setSelectedWorkoutId(null) // Clear selected workout ID
       setActiveTab("viewer")
     }
 
@@ -28,9 +38,11 @@ export function Workouts({ workoutType }: WorkoutsProps) {
     }
 
     window.addEventListener('showWorkout', handleShowWorkout as EventListener)
+    window.addEventListener('showGeneratedWorkout', handleShowGeneratedWorkout as EventListener)
     window.addEventListener('navigateToWorkouts', handleNavigateToWorkouts as EventListener)
     return () => {
       window.removeEventListener('showWorkout', handleShowWorkout as EventListener)
+      window.removeEventListener('showGeneratedWorkout', handleShowGeneratedWorkout as EventListener)
       window.removeEventListener('navigateToWorkouts', handleNavigateToWorkouts as EventListener)
     }
   }, [])
@@ -64,7 +76,7 @@ export function Workouts({ workoutType }: WorkoutsProps) {
         </TabsList>
 
         <TabsContent value="viewer" className="mt-6">
-          <WorkoutViewer workoutId={selectedWorkoutId} />
+          <WorkoutViewer workoutId={selectedWorkoutId} generatedWorkoutData={generatedWorkoutData} />
         </TabsContent>
 
         <TabsContent value="plan" className="mt-6">

@@ -91,12 +91,22 @@ export function DailyWorkoutGenerator() {
       if (data?.workout) {
         toast({
           title: "Workout Generated!",
-          description: "Your personalized workout is ready. Check the workout viewer to see it.",
+          description: "Your personalized workout is ready.",
         })
         
-        // Dispatch event to show the workout
-        window.dispatchEvent(new CustomEvent('showWorkout', { 
-          detail: { workoutId: data.workout.id } 
+        // Dispatch event to navigate to today's workout and show the generated workout
+        window.dispatchEvent(new CustomEvent('showGeneratedWorkout', { 
+          detail: { 
+            workoutData: {
+              title: data.workout.title,
+              type: data.workout.type,
+              sport: data.workout.sport,
+              duration: data.workout.duration || 60,
+              warmup: data.workout.warmup || [],
+              exercises: data.workout.exercises || [],
+              cooldown: data.workout.cooldown || []
+            }
+          } 
         }))
       } else {
         toast({
