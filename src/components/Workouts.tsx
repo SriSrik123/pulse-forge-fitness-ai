@@ -27,9 +27,11 @@ export function Workouts({ workoutType }: WorkoutsProps) {
     // Listen for generated workout events from DailyWorkoutGenerator
     const handleShowGeneratedWorkout = (event: CustomEvent) => {
       const { workoutData } = event.detail
+      console.log('Received showGeneratedWorkout event in Workouts component:', workoutData)
       setGeneratedWorkoutData(workoutData)
       setSelectedWorkoutId(null) // Clear selected workout ID
       setActiveTab("viewer")
+      console.log('Updated state - generatedWorkoutData:', workoutData, 'activeTab:', "viewer")
     }
 
     // Listen for navigation to workouts tab

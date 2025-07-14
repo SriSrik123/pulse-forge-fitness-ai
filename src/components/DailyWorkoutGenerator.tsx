@@ -89,6 +89,20 @@ export function DailyWorkoutGenerator() {
       })
 
       if (data?.workout) {
+        console.log('Raw workout data received:', data.workout)
+        
+        const workoutData = {
+          title: data.workout.title,
+          type: data.workout.type,
+          sport: data.workout.sport,
+          duration: data.workout.duration || 60,
+          warmup: data.workout.warmup || [],
+          exercises: data.workout.exercises || [],
+          cooldown: data.workout.cooldown || []
+        }
+        
+        console.log('Dispatching showGeneratedWorkout event with data:', workoutData)
+        
         toast({
           title: "Workout Generated!",
           description: "Your personalized workout is ready.",
@@ -96,17 +110,7 @@ export function DailyWorkoutGenerator() {
         
         // Dispatch event to navigate to today's workout and show the generated workout
         window.dispatchEvent(new CustomEvent('showGeneratedWorkout', { 
-          detail: { 
-            workoutData: {
-              title: data.workout.title,
-              type: data.workout.type,
-              sport: data.workout.sport,
-              duration: data.workout.duration || 60,
-              warmup: data.workout.warmup || [],
-              exercises: data.workout.exercises || [],
-              cooldown: data.workout.cooldown || []
-            }
-          } 
+          detail: { workoutData } 
         }))
       } else {
         toast({

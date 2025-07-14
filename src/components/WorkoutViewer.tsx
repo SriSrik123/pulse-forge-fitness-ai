@@ -70,6 +70,7 @@ export function WorkoutViewer({ workoutType, workoutId, generatedWorkoutData }: 
       console.log('Using generated workout data:', generatedWorkoutData)
       setWorkout(generatedWorkoutData)
       setLoading(false)
+      setTodayWorkouts([]) // Clear scheduled workouts when showing generated workout
       return
     }
     
