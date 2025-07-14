@@ -116,10 +116,31 @@ export function Dashboard({ onTabChange, setActiveTab }: DashboardProps) {
       })
 
       if (data?.workout) {
+        // Save the workout to the database first
+        const { data: savedWorkout, error: saveError } = await supabase
+          .from('workouts')
+          .insert({
+            user_id: user?.id,
+            title: data.workout.title,
+            description: `Generated ${scheduledWorkout.workout_type} workout`,
+            workout_type: data.workout.type,
+            sport: data.workout.sport,
+            duration: parseInt(data.workout.duration) || 60,
+            exercises: {
+              warmup: data.workout.warmup || [],
+              exercises: data.workout.exercises || [],
+              cooldown: data.workout.cooldown || []
+            }
+          })
+          .select()
+          .single()
+
+        if (saveError) throw saveError
+
         // Update the scheduled workout with the generated workout ID
         await supabase
           .from('scheduled_workouts')
-          .update({ workout_id: data.workout.id })
+          .update({ workout_id: savedWorkout.id })
           .eq('id', scheduledWorkout.id)
         
         toast({
@@ -130,7 +151,7 @@ export function Dashboard({ onTabChange, setActiveTab }: DashboardProps) {
         // Navigate to workouts tab and show the generated workout
         setActiveTab('workouts')
         setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('showWorkout', { detail: { workoutId: data.workout.id } }))
+          window.dispatchEvent(new CustomEvent('showWorkout', { detail: { workoutId: savedWorkout.id } }))
         }, 100)
       }
     } catch (error: any) {
