@@ -94,6 +94,14 @@ export function Dashboard({ onTabChange, setActiveTab }: DashboardProps) {
 
   const generateWorkoutForScheduled = async (scheduledWorkout: any) => {
     try {
+      // Get user's sport profile for context
+      const { data: sportProfile } = await supabase
+        .from('user_sport_profiles')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('primary_sport', scheduledWorkout.sport)
+        .single()
+
       // Get previous workouts for context
       const { data: previousWorkouts } = await supabase
         .from('workouts')
@@ -111,7 +119,9 @@ export function Dashboard({ onTabChange, setActiveTab }: DashboardProps) {
           scheduledWorkoutId: scheduledWorkout.id,
           previousWorkouts: previousWorkouts || [],
           adaptToProgress: true,
-          userPreferences: ""
+          userPreferences: "",
+          fitnessLevel: sportProfile?.experience_level || 'intermediate',
+          duration: sportProfile?.session_duration || 60
         }
       })
 
@@ -153,6 +163,9 @@ export function Dashboard({ onTabChange, setActiveTab }: DashboardProps) {
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('showWorkout', { detail: { workoutId: savedWorkout.id } }))
         }, 100)
+        
+        // Refresh the scheduled workouts to remove the "Generating..." state
+        setTodayWorkouts(prev => prev.filter(w => w.id !== scheduledWorkout.id))
       }
     } catch (error: any) {
       toast({

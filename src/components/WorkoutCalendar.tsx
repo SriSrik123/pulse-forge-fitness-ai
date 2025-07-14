@@ -345,6 +345,14 @@ export function WorkoutCalendar() {
     try {
       console.log('Generating workout for:', scheduledWorkout)
       
+      // Get user's sport profile for context
+      const { data: sportProfile } = await supabase
+        .from('user_sport_profiles')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('primary_sport', scheduledWorkout.sport)
+        .single()
+
       // Get previous workouts for context
       const { data: previousWorkouts } = await supabase
         .from('workouts')
@@ -359,8 +367,8 @@ export function WorkoutCalendar() {
           workoutType: scheduledWorkout.workout_type,
           sport: scheduledWorkout.sport,
           sessionType: scheduledWorkout.workout_type,
-          fitnessLevel: profile.experienceLevel || 'intermediate',
-          duration: profile.sessionDuration || 60,
+          fitnessLevel: sportProfile?.experience_level || 'intermediate',
+          duration: sportProfile?.session_duration || 60,
           equipment: [],
           sportEquipmentList: [],
           goals: `Improve ${scheduledWorkout.sport} performance`,
