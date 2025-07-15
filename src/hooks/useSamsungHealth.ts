@@ -97,17 +97,25 @@ export const useSamsungHealth = () => {
 
       setHealthData(data);
 
-      // Store data in Supabase
+      // Store data in Supabase with proper JSON serialization
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase.from('smartwatch_data').upsert({
-          user_id: user.id,
-          data: {
-            date,
-            samsung_health: data,
-            source: 'samsung_health'
-          }
-        });
+        const { error } = await supabase
+          .from('smartwatch_data')
+          .upsert({
+            user_id: user.id,
+            data: {
+              date,
+              samsung_health: data,
+              source: 'samsung_health'
+            } as any
+          }, {
+            onConflict: 'user_id'
+          });
+
+        if (error) {
+          console.error('Error storing Samsung Health data:', error);
+        }
       }
 
       return data;
