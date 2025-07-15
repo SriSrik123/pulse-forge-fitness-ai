@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>UserProfileDataType</title>
+    <link href="../../../../images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "../../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async="async"></script>
+<script type="text/javascript" src="../../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../../styles/style.css" rel="Stylesheet">
+<link href="../../../../styles/main.css" rel="Stylesheet">
+<link href="../../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../../scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="../../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../../scripts/symbol-parameters-wrapper_deferred.js" defer="defer"></script>
+<link href="../../../../styles/style.css" rel="Stylesheet">
+</head>
+<body>
+    <div class="root">
+<nav class="navigation" id="navigation-wrapper">
+    <div class="navigation--inner">
+        <div class="navigation-title">
+            <button class="menu-toggle" id="menu-toggle" type="button">toggle menu</button>
+            <div class="library-name">
+                    <a class="library-name--link" href="../../../../index.html">
+                            Samsung Health Data SDK v1.0.0 beta2
+                    </a>
+            </div>
+            <div class="library-version">
+            </div>
+        </div>
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active="" data-filter=":SDK:dokkaHtml/client">androidJvm</button>
+        </div>
+    </div>
+    <div class="navigation-controls">
+        <button class="navigation-controls--btn navigation-controls--theme" id="theme-toggle-button" type="button">switch theme</button>
+        <div class="navigation-controls--btn navigation-controls--search" id="searchBar" role="button">search in API</div>
+    </div>
+</nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="sidebar--inner" id="sideMenu"></div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="Samsung Health Data SDK v1.0.0 beta2::com.samsung.android.sdk.health.data.request/DataType.UserProfileDataType///PointingToDeclaration//-1784854612">
+  <div class="breadcrumbs"><a href="../../../../index.html">Samsung Health Data SDK v1.0.0 beta2</a><span class="delimiter">/</span><a href="../../index.html">com.samsung.android.sdk.health.data.request</a><span class="delimiter">/</span><a href="../index.html">DataType</a><span class="delimiter">/</span><span class="current">UserProfileDataType</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>User</span><wbr></wbr><span>Profile</span><wbr></wbr><span>Data</span><wbr></wbr><span><span>Type</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":SDK:dokkaHtml/client"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">UserProfileDataType</a> : <a href="../index.html">DataType</a>, <a href="../-readable/index.html">DataType.Readable</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="../../../com.samsung.android.sdk.health.data.data/-user-data-point/index.html">UserDataPoint</a><span class="token punctuation">, </span><span class="token keyword"></span><a href="../../-read-data-request/-user-profile-builder/index.html">ReadDataRequest.UserProfileBuilder</a><span class="token operator">&gt; </span></div><p class="paragraph">The data type for getting the user profile data in the Samsung Health.</p><h2 class=""> Predefined instance</h2><p class="paragraph">Using the following instance allows for obtaining user profile data with more concise code.</p><ul><li><p class="paragraph"><a href="../../-data-types/-companion/-u-s-e-r_-p-r-o-f-i-l-e.html">DataTypes.USER_PROFILE</a></p></li></ul><h2 class=""> Required permission</h2><p class="paragraph">The user's consent is required to access this data type. Check the granted permissions and request permissions if the required permission is not granted yet with:</p><ul><li><p class="paragraph"><a href="../../../com.samsung.android.sdk.health.data/-health-data-store/get-granted-permissions.html">HealthDataStore.getGrantedPermissions</a></p></li><li><p class="paragraph"><a href="../../../com.samsung.android.sdk.health.data/-health-data-store/request-permissions.html">HealthDataStore.requestPermissions</a></p></li></ul><p class="paragraph">See a code example in <a href="../../../com.samsung.android.sdk.health.data.permission/-permission/index.html">here</a>. The <code class="lang-kotlin">UserProfileDataType</code> provides read-only access.</p><h2 class=""> Data specifications</h2><p class="paragraph">This data type includes the following information.</p><table><thead><tr><th>Property</th><th>Description</th></tr></thead><tbody><tr><td><a href="-companion/-d-a-t-e_-o-f_-b-i-r-t-h.html">DATE_OF_BIRTH</a></td><td><small><i>[Mandatory]</i></small><br/> The date of birth of the user.</td></tr><tr><td><a href="-companion/-h-e-i-g-h-t.html">HEIGHT</a></td><td><small><i>[Mandatory]</i></small><br/> The height value in centimeters.</td></tr><tr><td><a href="-companion/-w-e-i-g-h-t.html">WEIGHT</a></td><td><small><i>[Mandatory]</i></small><br/> The weight value in kilograms.</td></tr><tr><td><a href="-companion/-g-e-n-d-e-r.html">GENDER</a></td><td><small><i>[Mandatory]</i></small><br/> The gender of the user. It's presented with <a href="-gender/index.html">Gender</a>.</td></tr><tr><td><a href="-companion/-n-i-c-k-n-a-m-e.html">NICKNAME</a></td><td><small><i>[Mandatory]</i></small><br/> The nickname of the user.</td></tr></tbody></table><span class="kdoc-tag"><h4 class="">Since</h4><p class="paragraph">1.0.0</p></span></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="">Constructors</h2>
+        <div class="table"><a data-name="-1699887316%2FConstructors%2F-1784854612" anchor-label="UserProfileDataType" id="-1699887316%2FConstructors%2F-1784854612" data-filterable-set=":SDK:dokkaHtml/client"></a>
+          <div class="table-row" data-togglable="CONSTRUCTOR" data-filterable-current=":SDK:dokkaHtml/client" data-filterable-set=":SDK:dokkaHtml/client">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-user-profile-data-type.html"><span>User</span><wbr></wbr><span>Profile</span><wbr></wbr><span>Data</span><wbr></wbr><span><span>Type</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1699887316%2FConstructors%2F-1784854612"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":SDK:dokkaHtml/client"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="TYPE">
+        <h2 class="">Types</h2>
+        <div class="table"><a data-name="945266389%2FClasslikes%2F-1784854612" anchor-label="Companion" id="945266389%2FClasslikes%2F-1784854612" data-filterable-set=":SDK:dokkaHtml/client"></a>
+          <div class="table-row" data-filterable-current=":SDK:dokkaHtml/client" data-filterable-set=":SDK:dokkaHtml/client">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="945266389%2FClasslikes%2F-1784854612"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":SDK:dokkaHtml/client"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-771516832%2FClasslikes%2F-1784854612" anchor-label="Gender" id="-771516832%2FClasslikes%2F-1784854612" data-filterable-set=":SDK:dokkaHtml/client"></a>
+          <div class="table-row" data-filterable-current=":SDK:dokkaHtml/client" data-filterable-set=":SDK:dokkaHtml/client">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-gender/index.html"><span><span>Gender</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-771516832%2FClasslikes%2F-1784854612"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":SDK:dokkaHtml/client"><div class="symbol monospace"><span class="token keyword">enum </span><a href="-gender/index.html">Gender</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin-stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><span class="token keyword"></span><a href="-gender/index.html">DataType.UserProfileDataType.Gender</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">The gender type of the user. It is used in <a href="-companion/-g-e-n-d-e-r.html">UserProfileDataType.GENDER</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="PROPERTY">
+        <h2 class="">Properties</h2>
+        <div class="table"><a data-name="1186471552%2FProperties%2F-1784854612" anchor-label="readDataRequestBuilder" id="1186471552%2FProperties%2F-1784854612" data-filterable-set=":SDK:dokkaHtml/client"></a>
+          <div class="table-row" data-filterable-current=":SDK:dokkaHtml/client" data-filterable-set=":SDK:dokkaHtml/client">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="read-data-request-builder.html"><span>read</span><wbr></wbr><span>Data</span><wbr></wbr><span>Request</span><wbr></wbr><span><span>Builder</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1186471552%2FProperties%2F-1784854612"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":SDK:dokkaHtml/client"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">val </span><a href="read-data-request-builder.html">readDataRequestBuilder</a><span class="token operator">: </span><a href="../../-read-data-request/-user-profile-builder/index.html">ReadDataRequest.UserProfileBuilder</a></div><div class="brief "><p class="paragraph">retrieves a <a href="../../-read-data-request/index.html">ReadDataRequest</a> instance to read the user profile data.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      <div class="footer">
+        <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>Copyright ⓒ Samsung Electronics, Co., Ltd. All rights reserved.</span><span
+                class="pull-right"><span>Generated by </span><a
+                href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+      </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
