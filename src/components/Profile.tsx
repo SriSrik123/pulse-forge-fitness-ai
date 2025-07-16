@@ -1,350 +1,400 @@
 
-import { useState, useEffect, useRef } from "react"
-import { useAuth } from "@/hooks/useAuth"
-import { supabase } from "@/integrations/supabase/client"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Camera, Award, Edit, Save, X, Trophy } from "lucide-react"
-import { toast } from "sonner"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { AchievementCard } from "./AchievementCard"
+import { 
+  Trophy, 
+  Target, 
+  Calendar, 
+  Zap, 
+  Award, 
+  Star, 
+  Medal, 
+  Crown, 
+  Flame, 
+  TrendingUp,
+  Clock,
+  Activity,
+  Heart,
+  Dumbbell,
+  Timer,
+  BarChart3,
+  CheckCircle2,
+  Sparkles,
+  Mountain,
+  Users,
+  Coffee,
+  Moon,
+  Sun
+} from "lucide-react"
 
-interface Achievement {
-  id: string
-  name: string
-  icon: string
-  earned: boolean
-  points: number
-}
-
-interface UserStats {
-  workouts_completed: number
-  current_streak: number
-  total_calories: number
-}
-
-interface ProfileProps {
-  onShowAchievements: () => void
-}
-
-export function Profile({ onShowAchievements }: ProfileProps) {
-  const { user } = useAuth()
-  const [isEditing, setIsEditing] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [profile, setProfile] = useState<any>(null)
-  const [achievements, setAchievements] = useState<Achievement[]>([])
-  const [userStats, setUserStats] = useState<UserStats>({
-    workouts_completed: 0,
-    current_streak: 0,
-    total_calories: 0
-  })
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [editForm, setEditForm] = useState({
-    full_name: '',
-    username: ''
-  })
-
-  useEffect(() => {
-    loadData()
-  }, [user?.id])
-
-  const loadData = async () => {
-    if (!user?.id) return
-
-    try {
-      // Load profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (profileError) throw profileError
-      setProfile(profileData)
-      setEditForm({
-        full_name: profileData.full_name || '',
-        username: profileData.username || ''
-      })
-
-      // Load user achievements (top 4)
-      const { data: achievementsData, error: achievementsError } = await supabase
-        .from('achievements')
-        .select(`
-          id,
-          name,
-          icon,
-          points,
-          user_achievements!left(earned_at)
-        `)
-        .limit(4)
-
-      if (achievementsError) throw achievementsError
-
-      const processedAchievements = achievementsData.map((achievement: any) => ({
-        id: achievement.id,
-        name: achievement.name,
-        icon: achievement.icon,
-        earned: achievement.user_achievements.length > 0,
-        points: achievement.points
-      }))
-
-      setAchievements(processedAchievements)
-
-      // Load user stats from workouts
-      const { data: workoutsData, error: workoutsError } = await supabase
-        .from('workouts')
-        .select('completed, created_at')
-        .eq('user_id', user.id)
-
-      if (workoutsError) throw workoutsError
-
-      const completedWorkouts = workoutsData?.filter(w => w.completed) || []
-      setUserStats({
-        workouts_completed: completedWorkouts.length,
-        current_streak: calculateStreak(completedWorkouts),
-        total_calories: completedWorkouts.length * 300 // Rough estimate
-      })
-
-    } catch (error) {
-      console.error('Error loading profile data:', error)
-    }
+const achievements = [
+  {
+    icon: Trophy,
+    title: "First Victory",
+    description: "Complete your first workout session",
+    progress: 1,
+    maxProgress: 1,
+    isUnlocked: true,
+    rarity: 'common' as const
+  },
+  {
+    icon: Calendar,
+    title: "Weekly Warrior",
+    description: "Complete workouts for 7 consecutive days",
+    progress: 5,
+    maxProgress: 7,
+    isUnlocked: false,
+    rarity: 'rare' as const
+  },
+  {
+    icon: Flame,
+    title: "On Fire",
+    description: "Maintain a 30-day workout streak",
+    progress: 12,
+    maxProgress: 30,
+    isUnlocked: false,
+    rarity: 'epic' as const
+  },
+  {
+    icon: Crown,
+    title: "Fitness Royalty",
+    description: "Complete 100 total workouts",
+    progress: 25,
+    maxProgress: 100,
+    isUnlocked: false,
+    rarity: 'legendary' as const
+  },
+  {
+    icon: Target,
+    title: "Goal Crusher",
+    description: "Achieve 5 personal fitness goals",
+    progress: 2,
+    maxProgress: 5,
+    isUnlocked: false,
+    rarity: 'rare' as const
+  },
+  {
+    icon: Zap,
+    title: "Power Hour",
+    description: "Complete a 60-minute intense workout",
+    progress: 1,
+    maxProgress: 1,
+    isUnlocked: true,
+    rarity: 'common' as const
+  },
+  {
+    icon: Heart,
+    title: "Cardio King",
+    description: "Complete 50 cardio sessions",
+    progress: 23,
+    maxProgress: 50,
+    isUnlocked: false,
+    rarity: 'rare' as const
+  },
+  {
+    icon: Dumbbell,
+    title: "Strength Master",
+    description: "Complete 50 strength training sessions",
+    progress: 18,
+    maxProgress: 50,
+    isUnlocked: false,
+    rarity: 'rare' as const
+  },
+  {
+    icon: Timer,
+    title: "Speed Demon",
+    description: "Complete a workout in under 15 minutes",
+    progress: 1,
+    maxProgress: 1,
+    isUnlocked: true,
+    rarity: 'common' as const
+  },
+  {
+    icon: Mountain,
+    title: "Peak Performer",
+    description: "Reach your highest intensity level",
+    progress: 0,
+    maxProgress: 1,
+    isUnlocked: false,
+    rarity: 'epic' as const
+  },
+  {
+    icon: Star,
+    title: "Rising Star",
+    description: "Get 5-star rating on 10 workouts",
+    progress: 3,
+    maxProgress: 10,
+    isUnlocked: false,
+    rarity: 'rare' as const
+  },
+  {
+    icon: Users,
+    title: "Team Player",
+    description: "Complete 10 group workouts",
+    progress: 2,
+    maxProgress: 10,
+    isUnlocked: false,
+    rarity: 'common' as const
+  },
+  {
+    icon: Coffee,
+    title: "Early Bird",
+    description: "Complete 20 morning workouts",
+    progress: 8,
+    maxProgress: 20,
+    isUnlocked: false,
+    rarity: 'common' as const
+  },
+  {
+    icon: Moon,
+    title: "Night Owl",
+    description: "Complete 20 evening workouts",
+    progress: 15,
+    maxProgress: 20,
+    isUnlocked: false,
+    rarity: 'common' as const
+  },
+  {
+    icon: Sparkles,
+    title: "Consistency Champion",
+    description: "Never miss a scheduled workout for 2 weeks",
+    progress: 8,
+    maxProgress: 14,
+    isUnlocked: false,
+    rarity: 'epic' as const
+  },
+  {
+    icon: BarChart3,
+    title: "Progress Tracker",
+    description: "Log your progress for 30 consecutive days",
+    progress: 12,
+    maxProgress: 30,
+    isUnlocked: false,
+    rarity: 'rare' as const
   }
+]
 
-  const calculateStreak = (workouts: any[]) => {
-    if (workouts.length === 0) return 0
-    
-    const sortedDates = workouts
-      .map(w => new Date(w.created_at).toDateString())
-      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
-    
-    let streak = 0
-    const today = new Date().toDateString()
-    const yesterday = new Date(Date.now() - 86400000).toDateString()
-    
-    if (sortedDates.includes(today) || sortedDates.includes(yesterday)) {
-      streak = 1
-      // Simple streak calculation - could be improved
-      for (let i = 1; i < sortedDates.length; i++) {
-        const currentDate = new Date(sortedDates[i])
-        const prevDate = new Date(sortedDates[i-1])
-        const diffDays = (prevDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24)
-        
-        if (diffDays <= 1) {
-          streak++
-        } else {
-          break
-        }
-      }
-    }
-    
-    return streak
-  }
+const stats = [
+  { label: "Total Workouts", value: "47", icon: Activity },
+  { label: "Current Streak", value: "5 days", icon: Flame },
+  { label: "Total Time", value: "32.5h", icon: Clock },
+  { label: "Achievements", value: "3/16", icon: Trophy }
+]
 
-  const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      setUploading(true)
-      
-      if (!event.target.files || event.target.files.length === 0) {
-        return
-      }
-
-      const file = event.target.files[0]
-      const fileExt = file.name.split('.').pop()
-      const filePath = `${user!.id}/${Math.random()}.${fileExt}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file)
-
-      if (uploadError) {
-        throw uploadError
-      }
-
-      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
-      
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          avatar_url: data.publicUrl,
-        })
-        .eq('id', user!.id)
-
-      if (updateError) {
-        throw updateError
-      }
-
-      setProfile(prev => ({ ...prev, avatar_url: data.publicUrl }))
-      toast.success('Avatar updated successfully!')
-    } catch (error) {
-      console.error('Error uploading avatar:', error)
-      toast.error('Error uploading avatar!')
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const saveProfile = async () => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: editForm.full_name,
-          username: editForm.username
-        })
-        .eq('id', user?.id)
-
-      if (error) throw error
-      
-      toast.success('Profile updated successfully!')
-      setIsEditing(false)
-      loadData()
-    } catch (error) {
-      console.error('Error updating profile:', error)
-      toast.error('Failed to update profile')
-    }
-  }
+export function Profile() {
+  const [activeTab, setActiveTab] = useState("overview")
+  
+  const unlockedAchievements = achievements.filter(a => a.isUnlocked)
+  const lockedAchievements = achievements.filter(a => !a.isUnlocked)
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <Card className="glass border-0">
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center text-center space-y-4">
-            <div className="relative">
-              <Avatar className="w-20 h-20">
-                {profile?.avatar_url && (
-                  <AvatarImage src={profile.avatar_url} alt="Profile picture" />
-                )}
-                <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-pulse-blue to-pulse-cyan text-white">
-                  {profile?.full_name?.charAt(0) || profile?.username?.charAt(0) || user?.email?.charAt(0) || '?'}
-                </AvatarFallback>
-              </Avatar>
-              <Button
-                size="sm"
-                variant="outline"
-                className="absolute -bottom-2 -right-2 rounded-full w-8 h-8 p-0"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                <Camera className="h-3 w-3" />
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={uploadAvatar}
-                className="hidden"
-              />
-            </div>
-            
-            {isEditing ? (
-              <div className="space-y-4 w-full max-w-sm">
-                <div>
-                  <Label htmlFor="full_name">Full Name</Label>
-                  <Input
-                    id="full_name"
-                    value={editForm.full_name}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, full_name: e.target.value }))}
-                    placeholder="Enter your full name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    value={editForm.username}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, username: e.target.value }))}
-                    placeholder="Enter your username"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={saveProfile} size="sm" className="bg-pulse-green hover:bg-pulse-green/80">
-                    <Save className="h-4 w-4 mr-1" />
-                    Save
-                  </Button>
-                  <Button onClick={() => setIsEditing(false)} size="sm" variant="outline">
-                    <X className="h-4 w-4 mr-1" />
-                    Cancel
-                  </Button>
+    <div className="min-h-screen bg-background pb-20 pt-16">
+      <div className="max-w-4xl mx-auto px-4 space-y-6">
+        {/* Profile Header */}
+        <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
+          <CardContent className="p-6">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
+                <span className="text-2xl font-bold text-primary">JD</span>
+              </div>
+              <div className="text-center sm:text-left flex-1">
+                <h1 className="text-2xl font-bold mb-2">John Doe</h1>
+                <p className="text-muted-foreground mb-3">Fitness Enthusiast • Level 12</p>
+                <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                  <Badge variant="secondary" className="bg-primary/10 text-primary">
+                    <Crown className="w-3 h-3 mr-1" />
+                    Premium Member
+                  </Badge>
+                  <Badge variant="outline">
+                    <Target className="w-3 h-3 mr-1" />
+                    Goal Focused
+                  </Badge>
                 </div>
               </div>
-            ) : (
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-bold">{profile?.full_name || 'No name set'}</h2>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setIsEditing(true)}
-                    className="h-6 w-6 p-0"
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat, index) => {
+            const Icon = stat.icon
+            return (
+              <Card key={index} className="bg-gradient-to-br from-background to-muted/30">
+                <CardContent className="p-4 text-center">
+                  <Icon className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <div className="text-2xl font-bold mb-1">{stat.value}</div>
+                  <div className="text-xs text-muted-foreground">{stat.label}</div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="overview" className="text-sm">Overview</TabsTrigger>
+            <TabsTrigger value="achievements" className="text-sm">Achievements</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6 mt-6">
+            {/* Recent Activity */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Activity className="h-5 w-5" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">Full Body Strength</p>
+                      <p className="text-xs text-muted-foreground">45 minutes • Today</p>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="bg-green-500/10 text-green-700">
+                    Completed
+                  </Badge>
                 </div>
-                <p className="text-muted-foreground">@{profile?.username || 'No username'}</p>
+                
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                      <Heart className="h-4 w-4 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">Cardio HIIT</p>
+                      <p className="text-xs text-muted-foreground">30 minutes • Yesterday</p>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="bg-blue-500/10 text-blue-700">
+                    Completed
+                  </Badge>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center">
+                      <Dumbbell className="h-4 w-4 text-orange-500" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">Upper Body Focus</p>
+                      <p className="text-xs text-muted-foreground">40 minutes • 2 days ago</p>
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="bg-orange-500/10 text-orange-700">
+                    Completed
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Current Goals */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Target className="h-5 w-5" />
+                  Current Goals
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Weekly Workout Goal</span>
+                    <span className="font-medium">5/7 sessions</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div className="bg-primary rounded-full h-2" style={{ width: '71%' }} />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Monthly Distance</span>
+                    <span className="font-medium">42/50 km</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div className="bg-green-500 rounded-full h-2" style={{ width: '84%' }} />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Strength Sessions</span>
+                    <span className="font-medium">8/12 this month</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div className="bg-blue-500 rounded-full h-2" style={{ width: '67%' }} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="achievements" className="space-y-6 mt-6">
+            {/* Achievement Summary */}
+            <Card className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border-yellow-500/20">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                    <Trophy className="h-8 w-8 text-yellow-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-1">Achievement Progress</h3>
+                    <p className="text-muted-foreground mb-2">
+                      {unlockedAchievements.length} of {achievements.length} achievements unlocked
+                    </p>
+                    <div className="w-48 bg-muted rounded-full h-2">
+                      <div 
+                        className="bg-yellow-500 rounded-full h-2 transition-all duration-300"
+                        style={{ width: `${(unlockedAchievements.length / achievements.length) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Unlocked Achievements */}
+            {unlockedAchievements.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Award className="h-5 w-5 text-green-500" />
+                  Unlocked Achievements
+                </h3>
+                <div className="grid gap-4">
+                  {unlockedAchievements.map((achievement, index) => (
+                    <AchievementCard key={`unlocked-${index}`} {...achievement} />
+                  ))}
+                </div>
               </div>
             )}
-            <div className="flex gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold text-pulse-blue">{userStats.workouts_completed}</div>
-                <div className="text-xs text-muted-foreground">Workouts</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-pulse-green">{userStats.current_streak}</div>
-                <div className="text-xs text-muted-foreground">Day Streak</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-pulse-purple">{userStats.total_calories}</div>
-                <div className="text-xs text-muted-foreground">Calories</div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      <Card className="glass border-0">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Award className="h-5 w-5" />
-              Recent Achievements
-            </div>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={onShowAchievements}
-              className="text-xs"
-            >
-              View All <Trophy className="h-3 w-3 ml-1" />
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-3">
-            {achievements.slice(0, 4).map((achievement) => (
-              <div
-                key={achievement.id}
-                className={`p-3 rounded-lg border text-center transition-all ${
-                  achievement.earned
-                    ? 'bg-pulse-green/10 border-pulse-green/20'
-                    : 'bg-muted/30 border-muted opacity-75'
-                }`}
-              >
-                <div className="text-2xl mb-1">{achievement.icon}</div>
-                <div className="text-sm font-medium">{achievement.name}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {achievement.points} pts
-                </div>
+            {/* Locked Achievements */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Medal className="h-5 w-5 text-muted-foreground" />
+                In Progress
+              </h3>
+              <div className="grid gap-4">
+                {lockedAchievements.map((achievement, index) => (
+                  <AchievementCard key={`locked-${index}`} {...achievement} />
+                ))}
               </div>
-            ))}
-          </div>
-          {achievements.length === 0 && (
-            <p className="text-center text-muted-foreground py-4">
-              Complete your first workout to start earning achievements!
-            </p>
-          )}
-        </CardContent>
-      </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }

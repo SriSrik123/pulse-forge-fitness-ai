@@ -1,5 +1,5 @@
 
-import { Home, Activity, BarChart3, Users, MessageCircle } from "lucide-react"
+import { Home, Activity, BarChart3, Users, MessageCircle, GraduationCap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "./ThemeToggle"
 import { ProfileDropdown } from "./ProfileDropdown"
@@ -24,10 +24,10 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
         <div className="flex items-center justify-between px-4 py-3 pt-12 md:pt-3">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-full pulse-gradient flex items-center justify-center">
-              <Activity className="h-4 w-4 text-white" />
+              <GraduationCap className="h-4 w-4 text-white" />
             </div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-pulse-blue to-pulse-cyan bg-clip-text text-transparent">
-              PulseTrack
+              CoachMe
             </h1>
           </div>
           <div className="flex items-center gap-2">
