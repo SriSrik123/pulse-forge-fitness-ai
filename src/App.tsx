@@ -95,7 +95,7 @@ function AppContent() {
           />
         )
       case 'profile':
-        return <Profile onShowAchievements={() => setShowAchievements(true)} />
+        return <Profile />
       case 'settings':
         return <Settings />
       default:
