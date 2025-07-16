@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -83,6 +84,27 @@ export function ProfileDropdown({ onTabChange }: ProfileDropdownProps) {
     return 'U'
   }
 
+  const getDisplayName = () => {
+    if (profile?.full_name) {
+      return profile.full_name
+    }
+    if (profile?.username) {
+      return profile.username
+    }
+    if (user?.email) {
+      const emailName = user.email.split('@')[0]
+      return emailName.charAt(0).toUpperCase() + emailName.slice(1)
+    }
+    return "User"
+  }
+
+  const getDisplaySubtext = () => {
+    if (profile?.username && profile?.full_name) {
+      return `@${profile.username}`
+    }
+    return user?.email || ""
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -98,10 +120,10 @@ export function ProfileDropdown({ onTabChange }: ProfileDropdownProps) {
       <DropdownMenuContent className="w-56 bg-background/95 backdrop-blur border" align="end" forceMount>
         <div className="flex flex-col space-y-1 p-2">
           <p className="text-sm font-medium leading-none">
-            {profile?.full_name || profile?.username || "User"}
+            {getDisplayName()}
           </p>
           <p className="text-xs leading-none text-muted-foreground">
-            {profile?.username ? `@${profile.username}` : user?.email}
+            {getDisplaySubtext()}
           </p>
         </div>
         <DropdownMenuSeparator />

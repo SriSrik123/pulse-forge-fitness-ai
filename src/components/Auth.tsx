@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
-import { Activity } from "lucide-react"
+import { GraduationCap } from "lucide-react"
 
 export function Auth() {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -61,7 +61,7 @@ export function Auth() {
         if (error) throw error
 
         toast({
-          title: "Welcome back!",
+          title: "Welcome back to CoachMe!",
           description: "You have successfully signed in.",
         })
       }
@@ -81,11 +81,15 @@ export function Auth() {
       <Card className="w-full max-w-md glass border-0">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Activity className="h-8 w-8 text-pulse-blue" />
-            <h1 className="text-2xl font-bold">PulseTrack</h1>
+            <div className="w-8 h-8 rounded-full pulse-gradient flex items-center justify-center">
+              <GraduationCap className="h-4 w-4 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-pulse-blue to-pulse-cyan bg-clip-text text-transparent">
+              CoachMe
+            </h1>
           </div>
           <CardTitle className="text-xl">
-            {isSignUp ? "Create your account" : "Welcome back"}
+            {isSignUp ? "Join CoachMe today" : "Welcome back to CoachMe"}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -146,7 +150,7 @@ export function Auth() {
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loading..." : (isSignUp ? "Sign Up" : "Sign In")}
+              {loading ? "Loading..." : (isSignUp ? "Join CoachMe" : "Sign In")}
             </Button>
           </form>
 
@@ -158,7 +162,7 @@ export function Auth() {
             >
               {isSignUp 
                 ? "Already have an account? Sign in" 
-                : "Don't have an account? Sign up"
+                : "New to CoachMe? Sign up"
               }
             </Button>
           </div>
