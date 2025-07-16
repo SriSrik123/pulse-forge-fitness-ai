@@ -1,374 +1,461 @@
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { useAuth } from "@/hooks/useAuth"
-import { useToast } from "@/hooks/use-toast"
-import { supabase } from "@/integrations/supabase/client"
-import { Camera, Trophy, Star, Target, Calendar, Activity } from "lucide-react"
-import { AchievementCard } from "./AchievementCard"
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { Calendar, Trophy, Target, Activity, Edit, User, Mail, MapPin, Phone, Clock, Award, Star, Zap } from 'lucide-react';
+import { AchievementCard } from './AchievementCard';
+import { useToast } from '@/hooks/use-toast';
 
 interface UserProfile {
-  full_name: string | null
-  username: string | null
-  avatar_url: string | null
-  email: string | null
+  id: string;
+  full_name: string | null;
+  username: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  created_at: string;
 }
 
-interface UserStats {
-  totalWorkouts: number
-  totalTime: number
-  currentStreak: number
-  achievements: number
+interface WorkoutStats {
+  totalWorkouts: number;
+  completedWorkouts: number;
+  totalGoals: number;
+  completedGoals: number;
 }
 
-export function Profile() {
-  const { user } = useAuth()
-  const { toast } = useToast()
-  const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [stats, setStats] = useState<UserStats>({
+const Profile: React.FC = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [workoutStats, setWorkoutStats] = useState<WorkoutStats>({
     totalWorkouts: 0,
-    totalTime: 0,
-    currentStreak: 0,
-    achievements: 0
-  })
-  const [loading, setLoading] = useState(true)
-  const [isEditing, setIsEditing] = useState(false)
+    completedWorkouts: 0,
+    totalGoals: 0,
+    completedGoals: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({
-    full_name: "",
-    username: ""
-  })
+    full_name: '',
+    username: '',
+    bio: ''
+  });
 
   useEffect(() => {
     if (user) {
-      fetchProfile()
-      fetchStats()
+      fetchProfile();
+      fetchWorkoutStats();
     }
-  }, [user])
+  }, [user]);
 
   const fetchProfile = async () => {
-    if (!user) return
+    if (!user) return;
 
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, username, avatar_url, email')
+        .select('*')
         .eq('id', user.id)
-        .single()
+        .single();
 
-      if (error) throw error
+      if (error && error.code === 'PGRST116') {
+        // Profile doesn't exist, create one
+        const newProfile = {
+          id: user.id,
+          full_name: user.user_metadata?.full_name || null,
+          username: user.user_metadata?.username || null,
+          email: user.email,
+          avatar_url: user.user_metadata?.avatar_url || null
+        };
 
-      const profileData = {
-        ...data,
-        email: user.email
+        const { data: createdProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert([newProfile])
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        setProfile(createdProfile);
+      } else if (error) {
+        throw error;
+      } else {
+        setProfile(data);
       }
-      setProfile(profileData)
-      setEditForm({
-        full_name: data.full_name || "",
-        username: data.username || ""
-      })
     } catch (error) {
-      console.error('Error fetching profile:', error)
-      // Set basic profile with user email if database fetch fails
-      setProfile({
-        full_name: null,
-        username: null,
-        avatar_url: null,
-        email: user.email
-      })
-    } finally {
-      setLoading(false)
+      console.error('Error fetching profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load profile data.",
+        variant: "destructive",
+      });
     }
-  }
+  };
 
-  const fetchStats = async () => {
-    if (!user) return
+  const fetchWorkoutStats = async () => {
+    if (!user) return;
 
     try {
-      // Fetch workout count
-      const { count: workoutCount } = await supabase
+      // Fetch workout stats
+      const { data: workouts, error: workoutError } = await supabase
         .from('workouts')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('completed', true)
+        .select('completed')
+        .eq('user_id', user.id);
 
-      // Fetch total workout time
-      const { data: workoutData } = await supabase
-        .from('workouts')
-        .select('duration')
-        .eq('user_id', user.id)
-        .eq('completed', true)
-        .not('duration', 'is', null)
+      if (workoutError) throw workoutError;
 
-      const totalTime = workoutData?.reduce((sum, workout) => sum + (workout.duration || 0), 0) || 0
+      // Fetch goals stats
+      const { data: goals, error: goalsError } = await supabase
+        .from('user_goals')
+        .select('completed')
+        .eq('user_id', user.id);
 
-      // Fetch achievements count
-      const { count: achievementCount } = await supabase
-        .from('user_achievements')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
+      if (goalsError) throw goalsError;
 
-      // Calculate current streak (simplified - count consecutive days with workouts)
-      const { data: recentWorkouts } = await supabase
-        .from('workouts')
-        .select('created_at')
-        .eq('user_id', user.id)
-        .eq('completed', true)
-        .order('created_at', { ascending: false })
-        .limit(30)
+      const totalWorkouts = workouts?.length || 0;
+      const completedWorkouts = workouts?.filter(w => w.completed).length || 0;
+      const totalGoals = goals?.length || 0;
+      const completedGoals = goals?.filter(g => g.completed).length || 0;
 
-      let currentStreak = 0
-      if (recentWorkouts && recentWorkouts.length > 0) {
-        const today = new Date()
-        const workoutDates = recentWorkouts.map(w => new Date(w.created_at).toDateString())
-        const uniqueDates = [...new Set(workoutDates)]
-        
-        for (let i = 0; i < uniqueDates.length; i++) {
-          const checkDate = new Date(today)
-          checkDate.setDate(today.getDate() - i)
-          
-          if (uniqueDates.includes(checkDate.toDateString())) {
-            currentStreak++
-          } else {
-            break
-          }
-        }
-      }
-
-      setStats({
-        totalWorkouts: workoutCount || 0,
-        totalTime: Math.round(totalTime / 60), // Convert to minutes
-        currentStreak,
-        achievements: achievementCount || 0
-      })
+      setWorkoutStats({
+        totalWorkouts,
+        completedWorkouts,
+        totalGoals,
+        completedGoals
+      });
     } catch (error) {
-      console.error('Error fetching stats:', error)
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  const handleUpdateProfile = async () => {
-    if (!user) return
+  const handleSaveProfile = async () => {
+    if (!user || !profile) return;
 
     try {
       const { error } = await supabase
         .from('profiles')
         .update({
-          full_name: editForm.full_name || null,
-          username: editForm.username || null
+          full_name: editForm.full_name,
+          username: editForm.username,
         })
-        .eq('id', user.id)
+        .eq('id', user.id);
 
-      if (error) throw error
+      if (error) throw error;
 
-      setProfile(prev => prev ? {
-        ...prev,
-        full_name: editForm.full_name || null,
-        username: editForm.username || null
-      } : null)
+      setProfile({
+        ...profile,
+        full_name: editForm.full_name,
+        username: editForm.username,
+      });
 
-      setIsEditing(false)
+      setEditing(false);
       toast({
-        title: "Profile updated",
-        description: "Your profile has been successfully updated.",
-      })
-    } catch (error: any) {
+        title: "Success",
+        description: "Profile updated successfully!",
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
       toast({
         title: "Error",
-        description: error.message,
-        variant: "destructive"
-      })
+        description: "Failed to update profile.",
+        variant: "destructive",
+      });
     }
-  }
+  };
 
-  const getInitials = () => {
-    if (profile?.full_name) {
-      return profile.full_name
-        .split(' ')
-        .map(name => name[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-    }
-    if (profile?.username) {
-      return profile.username.slice(0, 2).toUpperCase()
-    }
-    if (profile?.email) {
-      return profile.email.slice(0, 2).toUpperCase()
-    }
-    return 'U'
-  }
-
-  const formatTime = (minutes: number) => {
-    if (minutes < 60) return `${minutes}m`
-    const hours = Math.floor(minutes / 60)
-    const remainingMinutes = minutes % 60
-    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`
-  }
+  const startEditing = () => {
+    setEditForm({
+      full_name: profile?.full_name || '',
+      username: profile?.username || '',
+      bio: ''
+    });
+    setEditing(true);
+  };
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-32 bg-muted rounded-lg mb-4"></div>
-          <div className="h-20 bg-muted rounded-lg"></div>
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
-    )
+    );
   }
 
+  const completionPercentage = workoutStats.totalWorkouts > 0 
+    ? Math.round((workoutStats.completedWorkouts / workoutStats.totalWorkouts) * 100) 
+    : 0;
+
+  const achievements = [
+    {
+      id: '1',
+      name: 'First Workout',
+      description: 'Complete your first workout',
+      icon: Activity,
+      category: 'milestone',
+      points: 10,
+      earned: workoutStats.completedWorkouts > 0,
+      earnedDate: workoutStats.completedWorkouts > 0 ? new Date().toISOString() : undefined
+    },
+    {
+      id: '2',
+      name: 'Early Bird',
+      description: 'Complete 5 morning workouts',
+      icon: Clock,
+      category: 'consistency',
+      points: 25,
+      earned: workoutStats.completedWorkouts >= 5,
+      earnedDate: workoutStats.completedWorkouts >= 5 ? new Date().toISOString() : undefined
+    },
+    {
+      id: '3',
+      name: 'Goal Setter',
+      description: 'Set your first fitness goal',
+      icon: Target,
+      category: 'milestone',
+      points: 15,
+      earned: workoutStats.totalGoals > 0,
+      earnedDate: workoutStats.totalGoals > 0 ? new Date().toISOString() : undefined
+    },
+    {
+      id: '4',
+      name: 'Goal Crusher',
+      description: 'Complete your first goal',
+      icon: Trophy,
+      category: 'achievement',
+      points: 50,
+      earned: workoutStats.completedGoals > 0,
+      earnedDate: workoutStats.completedGoals > 0 ? new Date().toISOString() : undefined
+    },
+    {
+      id: '5',
+      name: 'Consistency King',
+      description: 'Complete 10 workouts',
+      icon: Award,
+      category: 'consistency',
+      points: 100,
+      earned: workoutStats.completedWorkouts >= 10,
+      earnedDate: workoutStats.completedWorkouts >= 10 ? new Date().toISOString() : undefined
+    },
+    {
+      id: '6',
+      name: 'Champion',
+      description: 'Complete 25 workouts',
+      icon: Star,
+      category: 'achievement',
+      points: 250,
+      earned: workoutStats.completedWorkouts >= 25,
+      earnedDate: workoutStats.completedWorkouts >= 25 ? new Date().toISOString() : undefined
+    },
+    {
+      id: '7',
+      name: 'Fitness Guru',
+      description: 'Complete 50 workouts',
+      icon: Zap,
+      category: 'mastery',
+      points: 500,
+      earned: workoutStats.completedWorkouts >= 50,
+      earnedDate: workoutStats.completedWorkouts >= 50 ? new Date().toISOString() : undefined
+    }
+  ];
+
+  const earnedAchievements = achievements.filter(a => a.earned);
+  const totalPoints = earnedAchievements.reduce((sum, a) => sum + a.points, 0);
+
   return (
-    <div className="space-y-6 pb-6">
+    <div className="container mx-auto px-4 py-6 space-y-6 max-w-4xl">
       {/* Profile Header */}
-      <Card className="glass border-0">
-        <CardContent className="pt-6">
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="relative">
-              <Avatar className="w-20 h-20">
-                <AvatarImage src={profile?.avatar_url || ""} alt="Profile" />
-                <AvatarFallback className="bg-pulse-blue text-white text-lg">
-                  {getInitials()}
-                </AvatarFallback>
-              </Avatar>
-              <Button
-                size="sm"
-                variant="outline"
-                className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full p-0"
-              >
-                <Camera className="w-4 h-4" />
-              </Button>
-            </div>
+      <Card className="w-full">
+        <CardHeader className="pb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <Avatar className="w-20 h-20 sm:w-24 sm:h-24">
+              <AvatarImage src={profile?.avatar_url || undefined} />
+              <AvatarFallback className="text-lg font-semibold">
+                {profile?.full_name?.charAt(0) || profile?.username?.charAt(0) || user?.email?.charAt(0) || 'U'}
+              </AvatarFallback>
+            </Avatar>
             
             <div className="flex-1 min-w-0">
-              {isEditing ? (
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="full_name" className="text-sm">Full Name</Label>
-                    <Input
-                      id="full_name"
-                      value={editForm.full_name}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, full_name: e.target.value }))}
-                      placeholder="Enter your full name"
-                      className="mt-1"
-                    />
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                <div className="min-w-0">
+                  <CardTitle className="text-xl sm:text-2xl truncate">
+                    {profile?.full_name || profile?.username || 'User'}
+                  </CardTitle>
+                  {profile?.username && profile?.full_name && (
+                    <CardDescription className="text-sm truncate">@{profile.username}</CardDescription>
+                  )}
+                  <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                    <Mail className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{profile?.email || user?.email}</span>
                   </div>
-                  <div>
-                    <Label htmlFor="username" className="text-sm">Username</Label>
-                    <Input
-                      id="username"
-                      value={editForm.username}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))}
-                      placeholder="Choose a username"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={handleUpdateProfile}>Save</Button>
-                    <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                    <Calendar className="w-4 h-4 flex-shrink-0" />
+                    <span>Joined {new Date(profile?.created_at || '').toLocaleDateString()}</span>
                   </div>
                 </div>
-              ) : (
-                <div>
-                  <h2 className="text-2xl font-bold truncate">
-                    {profile?.full_name || "Add your name"}
-                  </h2>
-                  <p className="text-muted-foreground">
-                    {profile?.username ? `@${profile.username}` : profile?.email}
-                  </p>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={() => setIsEditing(true)}
-                    className="mt-2"
-                  >
-                    Edit Profile
-                  </Button>
-                </div>
-              )}
+                
+                <Dialog open={editing} onOpenChange={setEditing}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={startEditing} className="flex-shrink-0">
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Profile
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md mx-4">
+                    <DialogHeader>
+                      <DialogTitle>Edit Profile</DialogTitle>
+                      <DialogDescription>
+                        Update your profile information.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="full_name">Full Name</Label>
+                        <Input
+                          id="full_name"
+                          value={editForm.full_name}
+                          onChange={(e) => setEditForm({...editForm, full_name: e.target.value})}
+                          placeholder="Enter your full name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="username">Username</Label>
+                        <Input
+                          id="username"
+                          value={editForm.username}
+                          onChange={(e) => setEditForm({...editForm, username: e.target.value})}
+                          placeholder="Enter your username"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleSaveProfile} className="flex-1">
+                          Save Changes
+                        </Button>
+                        <Button variant="outline" onClick={() => setEditing(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-primary" />
+              <div className="min-w-0">
+                <p className="text-2xl font-bold">{workoutStats.completedWorkouts}</p>
+                <p className="text-sm text-muted-foreground truncate">Workouts Done</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-primary" />
+              <div className="min-w-0">
+                <p className="text-2xl font-bold">{workoutStats.completedGoals}</p>
+                <p className="text-sm text-muted-foreground truncate">Goals Achieved</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-primary" />
+              <div className="min-w-0">
+                <p className="text-2xl font-bold">{earnedAchievements.length}</p>
+                <p className="text-sm text-muted-foreground truncate">Achievements</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Star className="w-5 h-5 text-primary" />
+              <div className="min-w-0">
+                <p className="text-2xl font-bold">{totalPoints}</p>
+                <p className="text-sm text-muted-foreground truncate">Points</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Progress Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Activity className="w-5 h-5" />
+            Progress Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <div className="flex justify-between text-sm mb-2">
+              <span>Workout Completion Rate</span>
+              <span>{completionPercentage}%</span>
+            </div>
+            <Progress value={completionPercentage} className="h-2" />
+          </div>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-muted-foreground">Total Workouts:</span>
+              <span className="ml-2 font-medium">{workoutStats.totalWorkouts}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Total Goals:</span>
+              <span className="ml-2 font-medium">{workoutStats.totalGoals}</span>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="glass border-0">
-          <CardContent className="p-4 text-center">
-            <Activity className="w-6 h-6 text-pulse-blue mx-auto mb-2" />
-            <div className="text-2xl font-bold">{stats.totalWorkouts}</div>
-            <div className="text-sm text-muted-foreground">Workouts</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="glass border-0">
-          <CardContent className="p-4 text-center">
-            <Calendar className="w-6 h-6 text-green-500 mx-auto mb-2" />
-            <div className="text-2xl font-bold">{stats.currentStreak}</div>
-            <div className="text-sm text-muted-foreground">Day Streak</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="glass border-0">
-          <CardContent className="p-4 text-center">
-            <Target className="w-6 h-6 text-orange-500 mx-auto mb-2" />
-            <div className="text-2xl font-bold">{formatTime(stats.totalTime)}</div>
-            <div className="text-sm text-muted-foreground">Total Time</div>
-          </CardContent>
-        </Card>
-        
-        <Card className="glass border-0">
-          <CardContent className="p-4 text-center">
-            <Trophy className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
-            <div className="text-2xl font-bold">{stats.achievements}</div>
-            <div className="text-sm text-muted-foreground">Achievements</div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Achievements Section */}
-      <Card className="glass border-0">
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Star className="w-5 h-5 text-yellow-500" />
-            Recent Achievements
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Trophy className="w-5 h-5" />
+            Achievements ({earnedAchievements.length}/{achievements.length})
           </CardTitle>
+          <CardDescription>
+            You've earned {totalPoints} points from {earnedAchievements.length} achievements!
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <AchievementCard 
-              title="Welcome to CoachMe!"
-              description="Complete your first workout"
-              icon="🎯"
-              earnedAt="2024-01-15"
-              isEarned={stats.totalWorkouts > 0}
-            />
-            <AchievementCard 
-              title="Consistency King"
-              description="Complete 5 workouts"
-              icon="👑"
-              earnedAt={stats.totalWorkouts >= 5 ? "2024-01-20" : undefined}
-              isEarned={stats.totalWorkouts >= 5}
-            />
-            <AchievementCard 
-              title="Week Warrior"
-              description="Maintain a 7-day streak"
-              icon="🔥"
-              earnedAt={stats.currentStreak >= 7 ? "2024-01-25" : undefined}
-              isEarned={stats.currentStreak >= 7}
-            />
-            {stats.achievements === 0 && stats.totalWorkouts === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <Trophy className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>Complete your first workout to start earning achievements!</p>
-              </div>
-            )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {achievements.map((achievement) => (
+              <AchievementCard
+                key={achievement.id}
+                achievement={achievement}
+              />
+            ))}
           </div>
         </CardContent>
       </Card>
     </div>
-  )
-}
+  );
+};
+
+export default Profile;
