@@ -1,416 +1,507 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Trophy, Target, Activity, ChevronDown } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
+import React, { useState, useEffect } from 'react'
+import { format, isToday, startOfDay } from 'date-fns'
+import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/integrations/supabase/client'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
+import { Flame, Trophy, Target, Calendar, Clock, ChevronRight, Play, CheckCircle } from 'lucide-react'
+import { toast } from '@/hooks/use-toast'
+
+interface Exercise {
+  name: string
+  sets?: number
+  reps?: number
+  duration?: number
+  rest?: number
+  weight?: number
+  distance?: number
+  instructions?: string
+}
 
 interface Workout {
-  id: string;
-  title: string;
-  sport: string;
-  workout_type: string;
-  scheduled_date: string;
-  completed: boolean;
-  skipped: boolean;
-  workout: {
-    description: string;
-    exercises: any[];
-  };
+  id: string
+  title: string
+  description?: string
+  sport: string
+  workout_type: string
+  duration?: number
+  exercises: Exercise[]
+  equipment?: any
+  feeling?: string
+  journal_entry?: string
+  user_id: string
 }
 
-interface Stats {
-  totalWorkouts: number;
-  completedWorkouts: number;
-  averageWorkoutDuration: number;
-  longestStreak: number;
+interface ScheduledWorkout {
+  id: string
+  title: string
+  sport: string
+  workout_type: string
+  scheduled_date: string
+  session_time_of_day?: string
+  completed?: boolean
+  skipped?: boolean
+  plan_id?: string
+  workout_id?: string
+  user_id: string
+  created_at: string
+  updated_at: string
+  workout?: Workout
 }
 
-export default function Dashboard() {
-  const { user } = useAuth();
-  const [scheduledWorkouts, setScheduledWorkouts] = useState<Workout[]>([]);
-  const [stats, setStats] = useState<Stats>({
-    totalWorkouts: 0,
-    completedWorkouts: 0,
-    averageWorkoutDuration: 0,
-    longestStreak: 0,
-  });
-  const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
+interface DashboardProps {
+  onTabChange: (tab: string, type?: string) => void
+  setActiveTab: (tab: string) => void
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ onTabChange, setActiveTab }) => {
+  const { user } = useAuth()
+  const [todaysWorkouts, setTodaysWorkouts] = useState<ScheduledWorkout[]>([])
+  const [selectedWorkoutIndex, setSelectedWorkoutIndex] = useState(0)
+  const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([])
+  const [weeklyProgress, setWeeklyProgress] = useState({ completed: 0, total: 7 })
+  const [streakCount, setStreakCount] = useState(0)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchWorkouts = async () => {
-      if (user) {
-        try {
-          const { data: workouts, error } = await supabase
-            .from('scheduled_workouts')
-            .select(`
-              id, 
-              title,
-              sport,
-              workout_type,
-              scheduled_date,
-              completed,
-              skipped,
-              workout (
-                description,
-                exercises
-              )
-            `)
-            .eq('user_id', user.id)
-            .order('scheduled_date', { ascending: false });
+    if (user) {
+      fetchDashboardData()
+    }
+  }, [user])
 
-          if (error) {
-            console.error('Error fetching workouts:', error);
+  const fetchDashboardData = async () => {
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd')
+      
+      // Fetch today's scheduled workouts with related workout data
+      const { data: scheduledData, error: scheduledError } = await supabase
+        .from('scheduled_workouts')
+        .select(`
+          *,
+          workout:workouts(*)
+        `)
+        .eq('user_id', user?.id)
+        .eq('scheduled_date', today)
+
+      if (scheduledError) throw scheduledError
+
+      // Transform the data to match our types
+      const transformedScheduled = (scheduledData || []).map(item => ({
+        ...item,
+        workout: item.workout ? {
+          ...item.workout,
+          exercises: Array.isArray(item.workout.exercises) 
+            ? item.workout.exercises 
+            : typeof item.workout.exercises === 'string' 
+              ? JSON.parse(item.workout.exercises)
+              : []
+        } : undefined
+      })) as ScheduledWorkout[]
+
+      setTodaysWorkouts(transformedScheduled)
+
+      // Fetch recent workouts
+      const { data: workoutData, error: workoutError } = await supabase
+        .from('workouts')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      if (workoutError) throw workoutError
+
+      // Transform workout data
+      const transformedWorkouts = (workoutData || []).map(workout => ({
+        ...workout,
+        exercises: Array.isArray(workout.exercises) 
+          ? workout.exercises 
+          : typeof workout.exercises === 'string' 
+            ? JSON.parse(workout.exercises)
+            : []
+      })) as Workout[]
+
+      setRecentWorkouts(transformedWorkouts)
+
+      // Calculate weekly progress and streak
+      await calculateWeeklyProgress()
+      await calculateStreak()
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const calculateWeeklyProgress = async () => {
+    try {
+      const startOfWeek = new Date()
+      startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
+      const endOfWeek = new Date(startOfWeek)
+      endOfWeek.setDate(startOfWeek.getDate() + 6)
+
+      const { data, error } = await supabase
+        .from('scheduled_workouts')
+        .select('completed')
+        .eq('user_id', user?.id)
+        .gte('scheduled_date', format(startOfWeek, 'yyyy-MM-dd'))
+        .lte('scheduled_date', format(endOfWeek, 'yyyy-MM-dd'))
+
+      if (error) throw error
+
+      const completed = data?.filter(w => w.completed).length || 0
+      const total = data?.length || 0
+
+      setWeeklyProgress({ completed, total: Math.max(total, 7) })
+    } catch (error) {
+      console.error('Error calculating weekly progress:', error)
+    }
+  }
+
+  const calculateStreak = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_workouts')
+        .select('scheduled_date, completed')
+        .eq('user_id', user?.id)
+        .eq('completed', true)
+        .order('scheduled_date', { ascending: false })
+        .limit(30)
+
+      if (error) throw error
+
+      let streak = 0
+      const today = startOfDay(new Date())
+      
+      if (data && data.length > 0) {
+        for (let i = 0; i < data.length; i++) {
+          const workoutDate = startOfDay(new Date(data[i].scheduled_date))
+          const daysDiff = Math.floor((today.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24))
+          
+          if (daysDiff === streak) {
+            streak++
           } else {
-            setScheduledWorkouts(workouts || []);
+            break
           }
-        } catch (err) {
-          console.error('Unexpected error fetching workouts:', err);
         }
       }
-    };
 
-    fetchWorkouts();
-  }, [user]);
+      setStreakCount(streak)
+    } catch (error) {
+      console.error('Error calculating streak:', error)
+    }
+  }
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (user) {
-        try {
-          const { data: userStats, error } = await supabase
-            .from('user_stats')
-            .select('*')
-            .eq('user_id', user.id)
-            .single();
-
-          if (error) {
-            console.error('Error fetching stats:', error);
-          } else {
-            if (userStats) {
-              setStats({
-                totalWorkouts: userStats.total_workouts || 0,
-                completedWorkouts: userStats.completed_workouts || 0,
-                averageWorkoutDuration: userStats.average_workout_duration || 0,
-                longestStreak: userStats.longest_streak || 0,
-              });
-            }
-          }
-        } catch (err) {
-          console.error('Unexpected error fetching stats:', err);
-        }
-      }
-    };
-
-    fetchStats();
-  }, [user]);
-
-  const handleCompleteWorkout = async (workoutId: string) => {
+  const markWorkoutComplete = async (workoutId: string) => {
     try {
       const { error } = await supabase
         .from('scheduled_workouts')
         .update({ completed: true })
-        .eq('id', workoutId);
+        .eq('id', workoutId)
 
-      if (error) {
-        console.error('Error completing workout:', error);
-      } else {
-        setScheduledWorkouts(prevWorkouts =>
-          prevWorkouts.map(workout =>
-            workout.id === workoutId ? { ...workout, completed: true } : workout
-          )
-        );
-        setStats(prevStats => ({
-          ...prevStats,
-          completedWorkouts: prevStats.completedWorkouts + 1,
-        }));
+      if (error) throw error
 
-        await supabase
-          .from('user_stats')
-          .update({ completed_workouts: stats.completedWorkouts + 1 })
-          .eq('user_id', user?.id);
-      }
-    } catch (err) {
-      console.error('Unexpected error completing workout:', err);
+      // Update local state
+      setTodaysWorkouts(prev => 
+        prev.map(w => w.id === workoutId ? { ...w, completed: true } : w)
+      )
+
+      toast({
+        title: "Workout Completed!",
+        description: "Great job finishing your workout!",
+      })
+
+      // Refresh dashboard data
+      await fetchDashboardData()
+    } catch (error) {
+      console.error('Error marking workout complete:', error)
+      toast({
+        title: "Error",
+        description: "Failed to mark workout as complete",
+        variant: "destructive",
+      })
     }
-  };
+  }
 
-  const handleSkipWorkout = async (workoutId: string) => {
-    try {
-      const { error } = await supabase
-        .from('scheduled_workouts')
-        .update({ skipped: true })
-        .eq('id', workoutId);
-
-      if (error) {
-        console.error('Error skipping workout:', error);
-      } else {
-        setScheduledWorkouts(prevWorkouts =>
-          prevWorkouts.map(workout =>
-            workout.id === workoutId ? { ...workout, skipped: true } : workout
-          )
-        );
-      }
-    } catch (err) {
-      console.error('Unexpected error skipping workout:', err);
+  const startWorkout = (workout: ScheduledWorkout | Workout) => {
+    // Navigate to workout view
+    if ('scheduled_date' in workout) {
+      // It's a scheduled workout
+      onTabChange('workouts', workout.workout_type)
+    } else {
+      // It's a regular workout
+      onTabChange('workouts', workout.workout_type)
     }
-  };
+  }
 
-  const todaysWorkouts = scheduledWorkouts.filter(workout => 
-    workout.scheduled_date === new Date().toISOString().split('T')[0]
-  );
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-8 bg-muted rounded w-48"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-24 bg-muted rounded"></div>
+          ))}
+        </div>
+        <div className="h-64 bg-muted rounded"></div>
+      </div>
+    )
+  }
 
-  const selectedWorkout = todaysWorkouts.find(w => w.id === selectedWorkoutId) || todaysWorkouts[0];
+  const selectedWorkout = todaysWorkouts[selectedWorkoutIndex]
+  const progressPercentage = weeklyProgress.total > 0 ? (weeklyProgress.completed / weeklyProgress.total) * 100 : 0
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-4 space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
-            Welcome back, {user?.user_metadata?.full_name || 'Athlete'}!
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Ready to crush your fitness goals today?
-          </p>
-        </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Welcome back!</h1>
+        <p className="text-muted-foreground">Here's your fitness overview for today</p>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <Trophy className="h-4 w-4 text-yellow-500" />
-                Total Workouts
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalWorkouts}</div>
-              <p className="text-xs text-muted-foreground">
-                All workouts ever scheduled
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <Target className="h-4 w-4 text-green-500" />
-                Completed Workouts
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.completedWorkouts}</div>
-              <p className="text-xs text-muted-foreground">
-                Workouts you've successfully completed
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <Calendar className="h-4 w-4 text-blue-500" />
-                Avg. Workout Duration
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.averageWorkoutDuration} min
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Average time spent per workout
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                <Activity className="h-4 w-4 text-orange-500" />
-                Longest Streak
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.longestStreak} days</div>
-              <p className="text-xs text-muted-foreground">
-                Your longest consecutive workout streak
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Today's Workout Section */}
-        <Card className="w-full">
-          <CardHeader className="pb-3">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <CardTitle className="text-lg sm:text-xl font-semibold text-foreground break-words min-w-0 flex-1">
-                Today's Workout
-              </CardTitle>
-              
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {todaysWorkouts.length > 1 && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="text-xs sm:text-sm whitespace-nowrap">
-                        Workout {todaysWorkouts.findIndex(w => w.id === selectedWorkoutId) + 1}
-                        <ChevronDown className="ml-1 h-3 w-3" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      {todaysWorkouts.map((workout, index) => (
-                        <DropdownMenuItem
-                          key={workout.id}
-                          onClick={() => setSelectedWorkoutId(workout.id)}
-                          className="cursor-pointer"
-                        >
-                          <div className="flex flex-col">
-                            <span className="font-medium">Workout {index + 1}</span>
-                            <span className="text-xs text-muted-foreground truncate">
-                              {workout.title}
-                            </span>
-                          </div>
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-                
-                <div className="flex gap-1">
-                  <Button 
-                    size="sm" 
-                    className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap"
-                    onClick={() => selectedWorkout && handleCompleteWorkout(selectedWorkout.id)}
-                    disabled={!selectedWorkout || selectedWorkout.completed}
-                  >
-                    {selectedWorkout?.completed ? 'Completed' : 'Complete'}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-xs sm:text-sm px-2 sm:px-3 whitespace-nowrap"
-                    onClick={() => selectedWorkout && handleSkipWorkout(selectedWorkout.id)}
-                    disabled={!selectedWorkout || selectedWorkout.skipped}
-                  >
-                    {selectedWorkout?.skipped ? 'Skipped' : 'Skip'}
-                  </Button>
-                </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-pulse-blue/20 to-pulse-blue/10 border-pulse-blue/20">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Flame className="h-5 w-5 text-pulse-blue" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{streakCount}</p>
+                <p className="text-xs text-muted-foreground">Day Streak</p>
               </div>
             </div>
-          </CardHeader>
-          
-          <CardContent className="pt-0">
-            {selectedWorkout ? (
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground break-words">
-                    {selectedWorkout.title}
-                  </span>
-                  <span className="hidden sm:inline">•</span>
-                  <span>{selectedWorkout.sport}</span>
-                  <span className="hidden sm:inline">•</span>
-                  <span>{selectedWorkout.workout_type}</span>
-                </div>
-                
-                {selectedWorkout.workout && (
-                  <div className="space-y-3">
-                    {selectedWorkout.workout.description && (
-                      <p className="text-sm text-muted-foreground break-words">
-                        {selectedWorkout.workout.description}
-                      </p>
-                    )}
-                    
-                    {selectedWorkout.workout.exercises && selectedWorkout.workout.exercises.length > 0 && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm">Exercises:</h4>
-                        <div className="space-y-2">
-                          {selectedWorkout.workout.exercises.slice(0, 3).map((exercise: any, index: number) => (
-                            <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm bg-muted/50 p-2 rounded">
-                              <span className="font-medium min-w-0 break-words">
-                                {exercise.name || `Exercise ${index + 1}`}
-                              </span>
-                              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                {exercise.sets && (
-                                  <span>{exercise.sets} sets</span>
-                                )}
-                                {exercise.reps && (
-                                  <span>{exercise.reps} reps</span>
-                                )}
-                                {exercise.duration && (
-                                  <span>{exercise.duration}</span>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                          {selectedWorkout.workout.exercises.length > 3 && (
-                            <p className="text-xs text-muted-foreground">
-                              +{selectedWorkout.workout.exercises.length - 3} more exercises...
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Activity className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">
-                  No workout scheduled
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Ready to get started? Create a new workout plan.
-                </p>
-                <Button onClick={() => window.location.href = '/workout-generator'}>
-                  Generate Workout
-                </Button>
-              </div>
-            )}
           </CardContent>
         </Card>
 
-        {/* Recent Activity Section */}
-        <section>
-          <h2 className="text-xl font-semibold text-foreground mb-4">
-            Recent Activity
-          </h2>
-          {/* Add recent activity list or components here */}
-          <p className="text-sm text-muted-foreground">
-            Your recent workout history will appear here.
-          </p>
-        </section>
+        <Card className="bg-gradient-to-br from-pulse-green/20 to-pulse-green/10 border-pulse-green/20">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Trophy className="h-5 w-5 text-pulse-green" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{weeklyProgress.completed}</p>
+                <p className="text-xs text-muted-foreground">This Week</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Quick Actions Section */}
-        <section>
-          <h2 className="text-xl font-semibold text-foreground mb-4">
-            Quick Actions
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="flex items-center justify-center p-4">
-                <Button onClick={() => window.location.href = '/workout-generator'}>
-                  Generate Workout
-                </Button>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="flex items-center justify-center p-4">
-                <Button onClick={() => window.location.href = '/workout-plans'}>
-                  View Workout Plans
-                </Button>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="flex items-center justify-center p-4">
-                <Button onClick={() => window.location.href = '/settings'}>
-                  Settings
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
+        <Card className="bg-gradient-to-br from-pulse-purple/20 to-pulse-purple/10 border-pulse-purple/20">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Target className="h-5 w-5 text-pulse-purple" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{Math.round(progressPercentage)}%</p>
+                <p className="text-xs text-muted-foreground">Weekly Goal</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-pulse-orange/20 to-pulse-orange/10 border-pulse-orange/20">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-5 w-5 text-pulse-orange" />
+              <div>
+                <p className="text-2xl font-bold text-foreground">{todaysWorkouts.length}</p>
+                <p className="text-xs text-muted-foreground">Today's Plan</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Today's Workout */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold">Today's Workout</CardTitle>
+            {todaysWorkouts.length > 1 && (
+              <Select 
+                value={selectedWorkoutIndex.toString()} 
+                onValueChange={(value) => setSelectedWorkoutIndex(parseInt(value))}
+              >
+                <SelectTrigger className="w-40 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-background border shadow-lg z-50">
+                  {todaysWorkouts.map((workout, index) => (
+                    <SelectItem key={workout.id} value={index.toString()}>
+                      {workout.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {selectedWorkout ? (
+            <div className="space-y-4">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2 flex-1 min-w-0">
+                  <h3 className="font-semibold text-foreground truncate">{selectedWorkout.title}</h3>
+                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                    <span className="capitalize">{selectedWorkout.sport}</span>
+                    <span>•</span>
+                    <span className="capitalize">{selectedWorkout.workout_type.replace('_', ' ')}</span>
+                    {selectedWorkout.session_time_of_day && (
+                      <>
+                        <span>•</span>
+                        <span className="capitalize">{selectedWorkout.session_time_of_day}</span>
+                      </>
+                    )}
+                  </div>
+                  {selectedWorkout.workout?.duration && (
+                    <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span>{selectedWorkout.workout.duration} minutes</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center space-x-2 ml-4">
+                  {selectedWorkout.completed ? (
+                    <Badge variant="secondary" className="bg-pulse-green/20 text-pulse-green">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Completed
+                    </Badge>
+                  ) : (
+                    <>
+                      <Button
+                        size="sm"
+                        onClick={() => startWorkout(selectedWorkout)}
+                        className="bg-pulse-blue hover:bg-pulse-blue/80"
+                      >
+                        <Play className="h-4 w-4 mr-1" />
+                        Start
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => markWorkoutComplete(selectedWorkout.id)}
+                      >
+                        Mark Done
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              {selectedWorkout.workout?.exercises && selectedWorkout.workout.exercises.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-foreground">Exercises:</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {selectedWorkout.workout.exercises.slice(0, 4).map((exercise, index) => (
+                      <div key={index} className="text-sm text-muted-foreground p-2 rounded bg-muted/50">
+                        {exercise.name}
+                        {(exercise.sets || exercise.reps) && (
+                          <span className="ml-2 text-xs">
+                            {exercise.sets && `${exercise.sets} sets`}
+                            {exercise.sets && exercise.reps && ' × '}
+                            {exercise.reps && `${exercise.reps} reps`}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {selectedWorkout.workout.exercises.length > 4 && (
+                    <p className="text-xs text-muted-foreground">
+                      +{selectedWorkout.workout.exercises.length - 4} more exercises
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">No workouts scheduled for today</p>
+              <Button onClick={() => onTabChange('generate')} className="bg-pulse-blue hover:bg-pulse-blue/80">
+                Generate Workout
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Weekly Progress */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Weekly Progress</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Workouts completed</span>
+              <span className="font-medium">{weeklyProgress.completed}/{weeklyProgress.total}</span>
+            </div>
+            <Progress value={progressPercentage} className="h-2" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent Workouts */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-lg">Recent Workouts</CardTitle>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => onTabChange('workouts')}
+            className="text-pulse-blue hover:text-pulse-blue/80"
+          >
+            View All <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {recentWorkouts.length > 0 ? (
+            <div className="space-y-3">
+              {recentWorkouts.map((workout, index) => (
+                <div key={workout.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-foreground truncate">{workout.title}</h4>
+                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                      <span className="capitalize">{workout.sport}</span>
+                      <span>•</span>
+                      <span className="capitalize">{workout.workout_type.replace('_', ' ')}</span>
+                      {workout.duration && (
+                        <>
+                          <span>•</span>
+                          <span>{workout.duration} min</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => startWorkout(workout)}
+                    className="text-pulse-blue hover:text-pulse-blue/80"
+                  >
+                    <Play className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-muted-foreground mb-2">No recent workouts</p>
+              <Button size="sm" onClick={() => onTabChange('generate')} className="bg-pulse-blue hover:bg-pulse-blue/80">
+                Generate Your First Workout
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
-  );
+  )
 }
+
+export default Dashboard
