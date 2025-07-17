@@ -1,15 +1,15 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Timer, Check, Plus, Minus } from "lucide-react";
+import { Clock, Play, Pause, Square, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface Exercise {
@@ -19,10 +19,10 @@ interface Exercise {
   duration?: number;
   distance?: number;
   weight?: number;
+  rest?: number;
 }
 
 interface ExercisePerformance {
-  exercise_name: string;
   sets?: number;
   reps?: number;
   value?: number;
@@ -32,129 +32,39 @@ interface ExercisePerformance {
   notes?: string;
 }
 
-export function WorkoutExecution() {
+export const WorkoutExecution = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
-  const [currentSet, setCurrentSet] = useState(1);
-  const [timer, setTimer] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [performanceData, setPerformanceData] = useState<ExercisePerformance[]>([]);
-  const [currentPerformance, setCurrentPerformance] = useState<Partial<ExercisePerformance>>({});
-  const [workoutNotes, setWorkoutNotes] = useState("");
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [performance, setPerformance] = useState<Record<number, ExercisePerformance>>({});
 
   const { data: workout, isLoading } = useQuery({
-    queryKey: ['workout', id],
+    queryKey: ["workout", id],
     queryFn: async () => {
-      if (!id) throw new Error('No workout ID provided');
-      
       const { data, error } = await supabase
-        .from('workouts')
-        .select('*')
-        .eq('id', id)
+        .from("workouts")
+        .select("*")
+        .eq("id", id)
         .single();
-      
+
       if (error) throw error;
       return data;
     },
-    enabled: !!id
+    enabled: !!id,
   });
 
-  // Safely parse exercises from Json type
-  const exercises: Exercise[] = workout?.exercises && Array.isArray(workout.exercises) 
-    ? workout.exercises.map(ex => typeof ex === 'object' && ex !== null ? ex as Exercise : { name: String(ex) })
-    : [];
-
-  const currentExercise = exercises[currentExerciseIndex];
-
+  // Timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isTimerRunning) {
       interval = setInterval(() => {
-        setTimer(prev => prev + 1);
+        setElapsedTime((prev) => prev + 1);
       }, 1000);
     }
     return () => clearInterval(interval);
   }, [isTimerRunning]);
-
-  const savePerformanceMutation = useMutation({
-    mutationFn: async (performanceEntries: ExercisePerformance[]) => {
-      const entries = performanceEntries.map(entry => ({
-        ...entry,
-        workout_id: id,
-        metric_type: getMetricType(entry, workout?.sport || ''),
-      }));
-
-      const { error } = await supabase
-        .from('workout_performance')
-        .insert(entries);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Workout completed! Performance saved.");
-      queryClient.invalidateQueries({ queryKey: ['workout-performance', id] });
-    }
-  });
-
-  const completeWorkoutMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from('workouts')
-        .update({ 
-          completed: true, 
-          duration: Math.round(timer / 60),
-          journal_entry: workoutNotes || null
-        })
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      if (performanceData.length > 0) {
-        savePerformanceMutation.mutate(performanceData);
-      }
-      navigate(`/workout/${id}`);
-    }
-  });
-
-  const getMetricType = (performance: ExercisePerformance, sport: string) => {
-    if (performance.value && performance.reps) return 'weight_reps';
-    if (performance.time_seconds) return 'time';
-    if (performance.distance) return 'distance';
-    return 'sets_reps';
-  };
-
-  const handleSetComplete = () => {
-    if (!currentExercise) return;
-
-    const performance: ExercisePerformance = {
-      exercise_name: currentExercise.name,
-      sets: currentSet,
-      ...currentPerformance
-    };
-
-    setPerformanceData(prev => [...prev, performance]);
-    
-    if (currentSet < (currentExercise.sets || 3)) {
-      setCurrentSet(prev => prev + 1);
-    } else {
-      // Move to next exercise
-      if (currentExerciseIndex < exercises.length - 1) {
-        setCurrentExerciseIndex(prev => prev + 1);
-        setCurrentSet(1);
-      }
-    }
-    
-    setCurrentPerformance({});
-  };
-
-  const handleWorkoutComplete = () => {
-    setIsTimerRunning(false);
-    completeWorkoutMutation.mutate();
-  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -162,214 +72,324 @@ export function WorkoutExecution() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const renderPerformanceInputs = () => {
-    if (!currentExercise || !workout) return null;
-
-    const sport = workout.sport.toLowerCase();
-    
-    if (sport.includes('weight') || sport.includes('strength') || sport.includes('gym')) {
-      return (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Reps</Label>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPerformance(prev => ({ 
-                  ...prev, 
-                  reps: Math.max(0, (prev.reps || 0) - 1) 
-                }))}
-              >
-                <Minus className="w-4 h-4" />
-              </Button>
-              <Input
-                type="number"
-                value={currentPerformance.reps || ''}
-                onChange={(e) => setCurrentPerformance(prev => ({ 
-                  ...prev, 
-                  reps: parseInt(e.target.value) || 0 
-                }))}
-                className="text-center"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPerformance(prev => ({ 
-                  ...prev, 
-                  reps: (prev.reps || 0) + 1 
-                }))}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-          <div>
-            <Label>Weight (kg)</Label>
-            <Input
-              type="number"
-              step="0.5"
-              value={currentPerformance.value || ''}
-              onChange={(e) => setCurrentPerformance(prev => ({ 
-                ...prev, 
-                value: parseFloat(e.target.value) || 0,
-                unit: 'kg'
-              }))}
-            />
-          </div>
-        </div>
-      );
-    }
-
-    if (sport.includes('swim') || sport.includes('run') || sport.includes('cardio')) {
-      return (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Time (seconds)</Label>
-            <Input
-              type="number"
-              value={currentPerformance.time_seconds || ''}
-              onChange={(e) => setCurrentPerformance(prev => ({ 
-                ...prev, 
-                time_seconds: parseInt(e.target.value) || 0 
-              }))}
-            />
-          </div>
-          <div>
-            <Label>Distance (m)</Label>
-            <Input
-              type="number"
-              value={currentPerformance.distance || ''}
-              onChange={(e) => setCurrentPerformance(prev => ({ 
-                ...prev, 
-                distance: parseInt(e.target.value) || 0 
-              }))}
-            />
-          </div>
-        </div>
-      );
-    }
-
-    // Default for other sports
-    return (
-      <div>
-        <Label>Reps</Label>
-        <Input
-          type="number"
-          value={currentPerformance.reps || ''}
-          onChange={(e) => setCurrentPerformance(prev => ({ 
-            ...prev, 
-            reps: parseInt(e.target.value) || 0 
-          }))}
-        />
-      </div>
-    );
+  const handleStartTimer = () => setIsTimerRunning(true);
+  const handlePauseTimer = () => setIsTimerRunning(false);
+  const handleStopTimer = () => {
+    setIsTimerRunning(false);
+    setElapsedTime(0);
   };
 
-  if (isLoading) return <div>Loading workout...</div>;
-  if (!workout || !currentExercise) return <div>Workout not found</div>;
+  // Safely parse exercises from JSON
+  let exercises: Exercise[] = [];
+  try {
+    if (workout?.exercises && Array.isArray(workout.exercises)) {
+      exercises = workout.exercises.map((ex) => {
+        if (typeof ex === 'object' && ex !== null && 'name' in ex) {
+          return ex as Exercise;
+        }
+        return { name: 'Unknown Exercise' };
+      });
+    }
+  } catch (error) {
+    console.error("Error parsing exercises:", error);
+  }
 
-  const isLastExercise = currentExerciseIndex === exercises.length - 1;
-  const isLastSet = currentSet >= (currentExercise.sets || 3);
+  const updatePerformance = (exerciseIndex: number, field: keyof ExercisePerformance, value: string | number) => {
+    setPerformance(prev => ({
+      ...prev,
+      [exerciseIndex]: {
+        ...prev[exerciseIndex],
+        [field]: value
+      }
+    }));
+  };
+
+  const completeExercise = () => {
+    if (currentExerciseIndex < exercises.length - 1) {
+      setCurrentExerciseIndex(prev => prev + 1);
+      toast.success("Exercise completed!");
+    } else {
+      finishWorkout();
+    }
+  };
+
+  const finishWorkout = async () => {
+    if (!workout || !id) return;
+
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("You must be logged in to save performance data");
+        return;
+      }
+
+      // Save performance data for each exercise
+      const performanceEntries = exercises.map((exercise, index) => {
+        const perf = performance[index] || {};
+        return {
+          workout_id: id,
+          user_id: user.id,
+          exercise_name: exercise.name,
+          metric_type: getMetricType(workout.sport),
+          sets: perf.sets || null,
+          reps: perf.reps || null,
+          value: perf.value || null,
+          unit: perf.unit || getDefaultUnit(workout.sport),
+          time_seconds: perf.time_seconds || null,
+          distance: perf.distance || null,
+          notes: perf.notes || null,
+        };
+      }).filter(entry => 
+        entry.sets || entry.reps || entry.value || entry.time_seconds || entry.distance
+      );
+
+      if (performanceEntries.length > 0) {
+        const { error } = await supabase
+          .from("workout_performance")
+          .insert(performanceEntries);
+
+        if (error) throw error;
+      }
+
+      // Mark workout as completed
+      const { error: updateError } = await supabase
+        .from("workouts")
+        .update({ completed: true })
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      toast.success("Workout completed successfully!");
+      navigate(`/workout/${id}`);
+    } catch (error) {
+      console.error("Error saving workout:", error);
+      toast.error("Failed to save workout data");
+    }
+  };
+
+  const getMetricType = (sport: string): string => {
+    switch (sport.toLowerCase()) {
+      case 'weightlifting':
+      case 'strength':
+        return 'weight_reps';
+      case 'swimming':
+      case 'running':
+      case 'cycling':
+        return 'time_distance';
+      default:
+        return 'general';
+    }
+  };
+
+  const getDefaultUnit = (sport: string): string => {
+    switch (sport.toLowerCase()) {
+      case 'weightlifting':
+      case 'strength':
+        return 'kg';
+      case 'swimming':
+      case 'running':
+        return 'm';
+      case 'cycling':
+        return 'km';
+      default:
+        return '';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!workout || exercises.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <p>Workout not found or has no exercises</p>
+      </div>
+    );
+  }
+
+  const currentExercise = exercises[currentExerciseIndex];
+  const currentPerf = performance[currentExerciseIndex] || {};
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-2xl mx-auto">
-        {/* Workout Header */}
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="break-words">{workout.title}</CardTitle>
-                <CardDescription>
-                  Exercise {currentExerciseIndex + 1} of {exercises.length}
-                </CardDescription>
-              </div>
-              <div className="text-right">
-                <Badge variant="secondary" className="mb-2">{workout.sport}</Badge>
-                <div className="flex items-center gap-2">
-                  <Timer className="w-4 h-4" />
-                  <span className="font-mono">{formatTime(timer)}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsTimerRunning(!isTimerRunning)}
-                  >
-                    {isTimerRunning ? 'Pause' : 'Start'}
-                  </Button>
-                </div>
-              </div>
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-foreground">{workout.title}</h1>
+          <div className="flex items-center justify-center gap-4 mt-2">
+            <Badge variant="secondary">{workout.sport}</Badge>
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span>{formatTime(elapsedTime)}</span>
             </div>
-          </CardHeader>
-        </Card>
+          </div>
+        </div>
 
-        {/* Current Exercise */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="break-words">{currentExercise.name}</span>
-              <Badge>Set {currentSet} / {currentExercise.sets || 3}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {renderPerformanceInputs()}
-            
-            <div>
-              <Label>Notes (optional)</Label>
-              <Input
-                value={currentPerformance.notes || ''}
-                onChange={(e) => setCurrentPerformance(prev => ({ 
-                  ...prev, 
-                  notes: e.target.value 
-                }))}
-                placeholder="Any notes for this set..."
-              />
-            </div>
-
-            <Button 
-              onClick={handleSetComplete}
-              className="w-full"
-              size="lg"
+        {/* Timer Controls */}
+        <Card>
+          <CardContent className="flex items-center justify-center gap-4 pt-6">
+            <Button
+              onClick={handleStartTimer}
+              disabled={isTimerRunning}
+              variant="default"
+              size="sm"
             >
-              <Check className="w-4 h-4 mr-2" />
-              Complete Set
+              <Play className="h-4 w-4 mr-2" />
+              Start
+            </Button>
+            <Button
+              onClick={handlePauseTimer}
+              disabled={!isTimerRunning}
+              variant="secondary"
+              size="sm"
+            >
+              <Pause className="h-4 w-4 mr-2" />
+              Pause
+            </Button>
+            <Button
+              onClick={handleStopTimer}
+              variant="outline"
+              size="sm"
+            >
+              <Square className="h-4 w-4 mr-2" />
+              Stop
             </Button>
           </CardContent>
         </Card>
 
-        {/* Workout Notes */}
-        <Card className="mb-6">
+        {/* Current Exercise */}
+        <Card>
           <CardHeader>
-            <CardTitle>Workout Notes</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Exercise {currentExerciseIndex + 1} of {exercises.length}</span>
+              <Badge variant="outline">{((currentExerciseIndex + 1) / exercises.length * 100).toFixed(0)}%</Badge>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <Textarea
-              value={workoutNotes}
-              onChange={(e) => setWorkoutNotes(e.target.value)}
-              placeholder="How did the workout feel? Any observations..."
-              rows={3}
-            />
+          <CardContent className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold mb-2">{currentExercise.name}</h2>
+              <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
+                {currentExercise.sets && <div>Target Sets: {currentExercise.sets}</div>}
+                {currentExercise.reps && <div>Target Reps: {currentExercise.reps}</div>}
+                {currentExercise.duration && <div>Target Duration: {currentExercise.duration}s</div>}
+                {currentExercise.distance && <div>Target Distance: {currentExercise.distance}m</div>}
+                {currentExercise.weight && <div>Target Weight: {currentExercise.weight}kg</div>}
+              </div>
+            </div>
+
+            {/* Performance Input */}
+            <div className="space-y-4">
+              <h3 className="font-medium">Record Your Performance</h3>
+              
+              {workout.sport?.toLowerCase().includes('weight') || workout.sport?.toLowerCase().includes('strength') ? (
+                // Weight training inputs
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="sets">Sets</Label>
+                    <Input
+                      id="sets"
+                      type="number"
+                      value={currentPerf.sets || ''}
+                      onChange={(e) => updatePerformance(currentExerciseIndex, 'sets', parseInt(e.target.value) || 0)}
+                      placeholder="Number of sets"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="reps">Reps</Label>
+                    <Input
+                      id="reps"
+                      type="number"
+                      value={currentPerf.reps || ''}
+                      onChange={(e) => updatePerformance(currentExerciseIndex, 'reps', parseInt(e.target.value) || 0)}
+                      placeholder="Reps per set"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="weight">Weight (kg)</Label>
+                    <Input
+                      id="weight"
+                      type="number"
+                      step="0.5"
+                      value={currentPerf.value || ''}
+                      onChange={(e) => updatePerformance(currentExerciseIndex, 'value', parseFloat(e.target.value) || 0)}
+                      placeholder="Weight used"
+                    />
+                  </div>
+                </div>
+              ) : (
+                // Cardio inputs
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="time">Time (seconds)</Label>
+                    <Input
+                      id="time"
+                      type="number"
+                      value={currentPerf.time_seconds || ''}
+                      onChange={(e) => updatePerformance(currentExerciseIndex, 'time_seconds', parseInt(e.target.value) || 0)}
+                      placeholder="Time taken"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="distance">Distance (m)</Label>
+                    <Input
+                      id="distance"
+                      type="number"
+                      value={currentPerf.distance || ''}
+                      onChange={(e) => updatePerformance(currentExerciseIndex, 'distance', parseFloat(e.target.value) || 0)}
+                      placeholder="Distance covered"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="notes">Notes (optional)</Label>
+                <Textarea
+                  id="notes"
+                  value={currentPerf.notes || ''}
+                  onChange={(e) => updatePerformance(currentExerciseIndex, 'notes', e.target.value)}
+                  placeholder="How did it feel? Any observations?"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            {/* Complete Exercise Button */}
+            <Button onClick={completeExercise} className="w-full gap-2">
+              <CheckCircle className="h-4 w-4" />
+              {currentExerciseIndex < exercises.length - 1 ? 'Complete Exercise' : 'Finish Workout'}
+            </Button>
           </CardContent>
         </Card>
 
-        {/* Complete Workout */}
-        {isLastExercise && isLastSet && (
-          <Card>
-            <CardContent className="pt-6">
-              <Button 
-                onClick={handleWorkoutComplete}
-                className="w-full"
-                size="lg"
-                disabled={completeWorkoutMutation.isPending}
-              >
-                {completeWorkoutMutation.isPending ? 'Saving...' : 'Complete Workout'}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        {/* Exercise Progress */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {exercises.map((exercise, index) => (
+                <div key={index} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                  <span className={`${index === currentExerciseIndex ? 'font-semibold' : ''} ${index < currentExerciseIndex ? 'text-muted-foreground' : ''}`}>
+                    {exercise.name}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {index < currentExerciseIndex && <CheckCircle className="h-4 w-4 text-green-500" />}
+                    {index === currentExerciseIndex && <Badge variant="default" size="sm">Current</Badge>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
-}
+};

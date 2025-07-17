@@ -1,11 +1,11 @@
 
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar, Dumbbell, Play } from "lucide-react";
+import { Clock, Target, Play } from "lucide-react";
 
 interface Exercise {
   name: string;
@@ -14,183 +14,176 @@ interface Exercise {
   duration?: number;
   distance?: number;
   weight?: number;
+  rest?: number;
 }
 
-export function WorkoutDetail() {
+interface PerformanceData {
+  exercise_name: string;
+  sets?: number;
+  reps?: number;
+  value?: number;
+  time_seconds?: number;
+  distance?: number;
+  unit?: string;
+  notes?: string;
+}
+
+export const WorkoutDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
   const { data: workout, isLoading } = useQuery({
-    queryKey: ['workout', id],
+    queryKey: ["workout", id],
     queryFn: async () => {
-      if (!id) throw new Error('No workout ID provided');
-      
       const { data, error } = await supabase
-        .from('workouts')
-        .select('*')
-        .eq('id', id)
+        .from("workouts")
+        .select("*")
+        .eq("id", id)
         .single();
-      
+
       if (error) throw error;
       return data;
     },
-    enabled: !!id
+    enabled: !!id,
   });
 
-  const { data: performance } = useQuery({
-    queryKey: ['workout-performance', id],
+  const { data: performanceData } = useQuery({
+    queryKey: ["workout-performance", id],
     queryFn: async () => {
-      if (!id) return [];
-      
       const { data, error } = await supabase
-        .from('workout_performance')
-        .select('*')
-        .eq('workout_id', id);
-      
+        .from("workout_performance")
+        .select("*")
+        .eq("workout_id", id)
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
-      return data;
+      return data as PerformanceData[];
     },
-    enabled: !!id
+    enabled: !!id,
   });
 
-  if (isLoading) return <div>Loading workout...</div>;
-  if (!workout) return <div>Workout not found</div>;
+  const handleStartWorkout = () => {
+    navigate(`/workout/${id}/execute`);
+  };
 
-  // Safely parse exercises from Json type
-  const exercises: Exercise[] = Array.isArray(workout.exercises) 
-    ? workout.exercises.map(ex => typeof ex === 'object' && ex !== null ? ex as Exercise : { name: String(ex) })
-    : [];
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!workout) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <p>Workout not found</p>
+      </div>
+    );
+  }
+
+  // Safely parse exercises from JSON
+  let exercises: Exercise[] = [];
+  try {
+    if (Array.isArray(workout.exercises)) {
+      exercises = workout.exercises.map((ex) => {
+        if (typeof ex === 'object' && ex !== null && 'name' in ex) {
+          return ex as Exercise;
+        }
+        return { name: 'Unknown Exercise' };
+      });
+    }
+  } catch (error) {
+    console.error("Error parsing exercises:", error);
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold break-words">{workout.title}</h1>
+            <h1 className="text-3xl font-bold text-foreground">{workout.title}</h1>
             <div className="flex items-center gap-4 mt-2">
               <Badge variant="secondary">{workout.sport}</Badge>
               <Badge variant="outline">{workout.workout_type}</Badge>
-              {workout.completed && <Badge variant="default">Completed</Badge>}
+              {workout.duration && (
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>{workout.duration} min</span>
+                </div>
+              )}
             </div>
           </div>
-          <Link to={`/workout/${workout.id}/execute`}>
-            <Button size="lg" className="flex items-center gap-2">
-              <Play className="w-4 h-4" />
-              Start Workout
-            </Button>
-          </Link>
+          <Button onClick={handleStartWorkout} size="lg" className="gap-2">
+            <Play className="h-4 w-4" />
+            Start Workout
+          </Button>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
-            {/* Workout Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Workout Details</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      {new Date(workout.created_at).toLocaleDateString()}
-                    </span>
+        {workout.description && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Description</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">{workout.description}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Exercises
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {exercises.map((exercise, index) => (
+                <div key={index} className="border rounded-lg p-4">
+                  <h3 className="font-semibold text-lg">{exercise.name}</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm text-muted-foreground">
+                    {exercise.sets && <div>Sets: {exercise.sets}</div>}
+                    {exercise.reps && <div>Reps: {exercise.reps}</div>}
+                    {exercise.duration && <div>Duration: {exercise.duration}s</div>}
+                    {exercise.distance && <div>Distance: {exercise.distance}m</div>}
+                    {exercise.weight && <div>Weight: {exercise.weight}kg</div>}
+                    {exercise.rest && <div>Rest: {exercise.rest}s</div>}
                   </div>
-                  {workout.duration && (
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm">{workout.duration} minutes</span>
-                    </div>
-                  )}
                 </div>
-                {workout.description && (
-                  <p className="text-muted-foreground">{workout.description}</p>
-                )}
-              </CardContent>
-            </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-            {/* Exercises */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Dumbbell className="w-5 h-5" />
-                  Exercises
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {exercises.map((exercise, index) => (
-                    <div key={index} className="p-4 rounded-lg border">
-                      <h4 className="font-medium mb-2">{exercise.name}</h4>
-                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                        {exercise.sets && (
-                          <span>{exercise.sets} sets</span>
-                        )}
-                        {exercise.reps && (
-                          <span>{exercise.reps} reps</span>
-                        )}
-                        {exercise.duration && (
-                          <span>{exercise.duration} seconds</span>
-                        )}
-                        {exercise.distance && (
-                          <span>{exercise.distance} meters</span>
-                        )}
-                        {exercise.weight && (
-                          <span>{exercise.weight} kg</span>
-                        )}
-                      </div>
+        {performanceData && performanceData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Previous Performance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {performanceData.map((perf, index) => (
+                  <div key={index} className="border rounded-lg p-4">
+                    <h4 className="font-medium">{perf.exercise_name}</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm text-muted-foreground">
+                      {perf.sets && <div>Sets: {perf.sets}</div>}
+                      {perf.reps && <div>Reps: {perf.reps}</div>}
+                      {perf.value && <div>Weight: {perf.value}{perf.unit || 'kg'}</div>}
+                      {perf.time_seconds && <div>Time: {perf.time_seconds}s</div>}
+                      {perf.distance && <div>Distance: {perf.distance}m</div>}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Performance History */}
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance History</CardTitle>
-                <CardDescription>Previous results for this workout</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {performance && performance.length > 0 ? (
-                  <div className="space-y-4">
-                    {performance.map((perf) => (
-                      <div key={perf.id} className="p-3 rounded-lg border">
-                        <h5 className="font-medium">{perf.exercise_name}</h5>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {perf.sets && `${perf.sets} sets`}
-                          {perf.reps && ` × ${perf.reps} reps`}
-                          {perf.value && ` @ ${perf.value}${perf.unit || 'kg'}`}
-                          {perf.time_seconds && ` in ${perf.time_seconds}s`}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {new Date(perf.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                    ))}
+                    {perf.notes && (
+                      <p className="text-sm text-muted-foreground mt-2">{perf.notes}</p>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    No performance data yet. Complete the workout to track your progress!
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {workout.journal_entry && (
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle>Journal Notes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm">{workout.journal_entry}</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
-}
+};
