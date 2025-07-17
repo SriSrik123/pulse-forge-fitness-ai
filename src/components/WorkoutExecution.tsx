@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Timer, Plus, Minus, Play, Pause } from "lucide-react"
+import { CheckCircle, Timer, Plus, Minus, Play, Pause, Info } from "lucide-react"
+import { format } from "date-fns"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
@@ -256,96 +257,156 @@ export function WorkoutExecution({ workout, workoutId, onComplete }: WorkoutExec
     </div>
   )
 
-  const renderExercise = () => {
-    const exercise = workout.exercises[currentIndex]
-    const exercisePerf = exercisePerformance[currentIndex]
+  const renderAllExercises = () => {
     const fields = getSportSpecificFields(workout.sport)
     
-    if (!exercise || !exercisePerf) return null
-
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h2 className="text-2xl font-bold">{exercise.name}</h2>
-          <Badge variant="outline" className="mt-2">
-            Exercise {currentIndex + 1} of {workout.exercises.length}
-          </Badge>
-          {exercise.description && (
-            <p className="text-muted-foreground mt-2">{exercise.description}</p>
-          )}
+          <h2 className="text-xl font-bold">{workout.title}</h2>
+          <p className="text-sm text-muted-foreground">
+            {format(new Date(), 'MMM d, yyyy')}
+          </p>
+          <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mt-1">
+            <Timer className="h-4 w-4" />
+            {formatTime(timerSeconds)}
+          </div>
         </div>
 
-        {/* Exercise Sets */}
-        <div className="space-y-4">
-          {exercisePerf.performance_data.map((set, setIndex) => (
-            <Card key={setIndex} className={`p-4 ${set.completed ? 'bg-green-50 border-green-200' : ''}`}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium">Set {set.set}</h3>
-                <Button
-                  size="sm"
-                  variant={set.completed ? "secondary" : "default"}
-                  onClick={() => markSetCompleted(currentIndex, setIndex)}
-                  disabled={set.completed}
+        {/* All Exercises */}
+        <div className="space-y-6">
+          {workout.exercises.map((exercise, exerciseIndex) => {
+            const exercisePerf = exercisePerformance[exerciseIndex]
+            if (!exercisePerf) return null
+
+            return (
+              <div key={exerciseIndex} className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-primary">{exercise.name}</h3>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                    <Info className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                {exercise.description && (
+                  <div className="bg-orange-100 text-orange-800 text-sm p-2 rounded">
+                    {exercise.description}
+                  </div>
+                )}
+
+                {/* Headers */}
+                <div className="grid grid-cols-4 gap-2 text-sm font-medium text-muted-foreground">
+                  <div className="text-center">Set</div>
+                  <div className="text-center">Previous</div>
+                  {fields.includes('weight') && <div className="text-center">lbs</div>}
+                  {fields.includes('time') && <div className="text-center">Time</div>}
+                  {fields.includes('distance') && <div className="text-center">Distance</div>}
+                  <div className="text-center">
+                    {fields.includes('reps') ? 'Reps' : fields.includes('time') ? 'Duration' : 'Complete'}
+                  </div>
+                </div>
+
+                {/* Sets */}
+                <div className="space-y-2">
+                  {exercisePerf.performance_data.map((set, setIndex) => (
+                    <div key={setIndex} className="grid grid-cols-4 gap-2 items-center">
+                      <div className="text-center">
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
+                          {set.set}
+                        </div>
+                      </div>
+                      
+                      <div className="text-center text-sm text-muted-foreground">
+                        {/* Previous performance placeholder */}
+                        --
+                      </div>
+                      
+                      {fields.includes('weight') && (
+                        <div>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={set.weight || ''}
+                            onChange={(e) => updatePerformanceData(exerciseIndex, setIndex, 'weight', parseFloat(e.target.value) || 0)}
+                            className="text-center h-10"
+                            disabled={set.completed}
+                          />
+                        </div>
+                      )}
+                      
+                      {fields.includes('time') && !fields.includes('weight') && (
+                        <div>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={set.time_seconds || ''}
+                            onChange={(e) => updatePerformanceData(exerciseIndex, setIndex, 'time_seconds', parseInt(e.target.value) || 0)}
+                            className="text-center h-10"
+                            disabled={set.completed}
+                          />
+                        </div>
+                      )}
+                      
+                      {fields.includes('distance') && (
+                        <div>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={set.distance || ''}
+                            onChange={(e) => updatePerformanceData(exerciseIndex, setIndex, 'distance', parseFloat(e.target.value) || 0)}
+                            className="text-center h-10"
+                            disabled={set.completed}
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2">
+                        {fields.includes('reps') ? (
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={set.reps || ''}
+                            onChange={(e) => updatePerformanceData(exerciseIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
+                            className="text-center h-10 flex-1"
+                            disabled={set.completed}
+                          />
+                        ) : null}
+                        
+                        <Button
+                          size="sm"
+                          variant={set.completed ? "secondary" : "outline"}
+                          onClick={() => markSetCompleted(exerciseIndex, setIndex)}
+                          className="h-10 w-10 p-0"
+                        >
+                          {set.completed ? <CheckCircle className="h-4 w-4 text-green-600" /> : <CheckCircle className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add Set Button */}
+                <Button 
+                  variant="ghost" 
+                  className="w-full text-muted-foreground"
+                  onClick={() => {
+                    const newSet = {
+                      set: exercisePerf.performance_data.length + 1,
+                      completed: false
+                    }
+                    setExercisePerformance(prev => {
+                      const updated = [...prev]
+                      updated[exerciseIndex].performance_data.push(newSet)
+                      return updated
+                    })
+                  }}
                 >
-                  {set.completed ? <CheckCircle className="h-4 w-4" /> : "Complete Set"}
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Set
                 </Button>
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                {fields.includes('weight') && (
-                  <div>
-                    <Label>Weight (lbs)</Label>
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      value={set.weight || ''}
-                      onChange={(e) => updatePerformanceData(currentIndex, setIndex, 'weight', parseFloat(e.target.value))}
-                      disabled={set.completed}
-                    />
-                  </div>
-                )}
-                
-                {fields.includes('reps') && (
-                  <div>
-                    <Label>Reps</Label>
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      value={set.reps || ''}
-                      onChange={(e) => updatePerformanceData(currentIndex, setIndex, 'reps', parseInt(e.target.value))}
-                      disabled={set.completed}
-                    />
-                  </div>
-                )}
-                
-                {fields.includes('time') && (
-                  <div>
-                    <Label>Time (seconds)</Label>
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      value={set.time_seconds || ''}
-                      onChange={(e) => updatePerformanceData(currentIndex, setIndex, 'time_seconds', parseInt(e.target.value))}
-                      disabled={set.completed}
-                    />
-                  </div>
-                )}
-                
-                {fields.includes('distance') && (
-                  <div>
-                    <Label>Distance</Label>
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      value={set.distance || ''}
-                      onChange={(e) => updatePerformanceData(currentIndex, setIndex, 'distance', parseFloat(e.target.value))}
-                      disabled={set.completed}
-                    />
-                  </div>
-                )}
-              </div>
-            </Card>
-          ))}
+            )
+          })}
         </div>
 
         {/* Rest Timer */}
@@ -358,17 +419,10 @@ export function WorkoutExecution({ workout, workoutId, onComplete }: WorkoutExec
           </Card>
         )}
 
-        {/* Navigation */}
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            onClick={nextExercise}
-            className="flex-1"
-            disabled={exercisePerf.sets_completed === 0}
-          >
-            {currentIndex === workout.exercises.length - 1 ? 'Start Cooldown' : 'Next Exercise'}
-          </Button>
-        </div>
+        {/* Finish Button */}
+        <Button onClick={finishWorkout} className="w-full" size="lg">
+          Finish Workout
+        </Button>
       </div>
     )
   }
@@ -444,7 +498,7 @@ export function WorkoutExecution({ workout, workoutId, onComplete }: WorkoutExec
 
       {/* Phase content */}
       {currentPhase === 'warmup' && renderWarmup()}
-      {currentPhase === 'exercises' && renderExercise()}
+      {currentPhase === 'exercises' && renderAllExercises()}
       {currentPhase === 'cooldown' && renderCooldown()}
     </div>
   )
