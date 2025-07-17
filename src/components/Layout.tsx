@@ -6,7 +6,7 @@ export function Layout() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <main className="pt-20 pb-20"> {/* Increased top padding to avoid navbar overlap */}
+      <main className="pt-24 pb-8">
         <Outlet />
       </main>
     </div>
