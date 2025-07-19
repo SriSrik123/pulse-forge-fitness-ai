@@ -77,8 +77,8 @@ export function WorkoutViewer({ workoutType, workoutId, generatedWorkoutData }: 
       return
     }
     
-    // If we already have a workout loaded and no new parameters, don't reload
-    if (workout && !workoutId && !generatedWorkoutData) {
+    // If we already have a workout loaded and it's not from parameters, don't reload
+    if (workout && !workoutId && !generatedWorkoutData && currentWorkoutId) {
       console.log('Already have workout loaded, not reloading')
       return
     }
@@ -285,8 +285,14 @@ export function WorkoutViewer({ workoutType, workoutId, generatedWorkoutData }: 
             .update({ workout_id: data.workout.id })
             .eq('id', scheduledWorkout.id)
           
-          // Refresh the scheduled workouts list
-          await loadScheduledWorkouts()
+          // Don't refresh scheduled workouts as it will clear the current workout
+          // Just update the local state to show the workout is linked
+          setTodayWorkouts(prev => 
+            prev.map(w => w.id === scheduledWorkout.id 
+              ? { ...w, workout_id: data.workout.id } 
+              : w
+            )
+          )
           
           toast({
             title: "Workout Generated!",
