@@ -163,12 +163,13 @@ SWIMMING SPECIFIC REQUIREMENTS:
 - DO NOT use "sets" terminology - use proper swimming notation instead
 - Format as distance/exercise with interval time (e.g., "4x50 freestyle on 1:30")
 - Include interval times based on fitness level:
-  * Beginner: Easy pace with long rest (e.g., 4x50 free on 1:30)
+  * Beginner: Easy pace with long intervals (e.g., 4x50 free on 1:30)
   * Intermediate: Moderate pace (e.g., 6x50 free on 1:15) 
-  * Advanced: Faster pace with shorter rest (e.g., 8x50 free on 1:00)
+  * Advanced: Faster pace with shorter intervals (e.g., 8x50 free on 1:00)
 - Include stroke variety (freestyle, backstroke, breaststroke, butterfly)
-- For JSON format: put the full exercise description in "reps" field and interval in "rest" field, leave "sets" empty
-- Example JSON exercise: {"name": "Freestyle Distance", "sets": "", "reps": "4x50 freestyle", "rest": "1:30", "description": "Focus on technique and breathing"}
+- For JSON format: put the full exercise description in "reps" field and interval in "interval" field, leave "sets" empty
+- Example JSON exercise: {"name": "Freestyle Distance", "sets": "", "reps": "4x50 freestyle", "interval": "1:30", "description": "Focus on technique and breathing"}
+- IMPORTANT: Use "interval" instead of "rest" for swimming workouts
         `;
       } else if (sport === 'running') {
         sportSpecificInstructions = `
@@ -242,7 +243,7 @@ CYCLING SPECIFIC REQUIREMENTS:
         "sport": "${sport}",
         "type": "${sessionType}",
         "warmup": ["exercise 1", "exercise 2", "exercise 3"],
-        "exercises": [{"name": "Exercise Name", "sets": 3, "reps": "8-12", "rest": "60s", "description": "Brief description", "sportSpecific": true}],
+        "exercises": [{"name": "Exercise Name", "sets": 3, "reps": "8-12", ${sport === 'swimming' ? '"interval"' : '"rest"'}: "60s", "description": "Brief description", "sportSpecific": true}],
         "cooldown": ["stretch 1", "stretch 2", "stretch 3"]
       }`;
     } else {

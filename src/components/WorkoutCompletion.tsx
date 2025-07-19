@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
 import { PerformanceTracker } from "./PerformanceTracker"
+import { SwimmingPerformanceTracker } from "./SwimmingPerformanceTracker"
 
 interface WorkoutCompletionProps {
   workout: any
@@ -105,15 +106,28 @@ export function WorkoutCompletion({ workout, onComplete }: WorkoutCompletionProp
     <div className="space-y-6">
       {/* Performance Tracking */}
       {showPerformanceTracker && (
-        <PerformanceTracker
-          workoutId={workout.id}
-          onPerformanceAdded={() => {
-            toast({
-              title: "Performance Saved",
-              description: "Your workout performance has been recorded"
-            })
-          }}
-        />
+        workout.sport === 'swimming' ? (
+          <SwimmingPerformanceTracker
+            workout={workout}
+            workoutId={workout.id}
+            onPerformanceAdded={() => {
+              toast({
+                title: "Performance Saved",
+                description: "Your swimming times have been recorded"
+              })
+            }}
+          />
+        ) : (
+          <PerformanceTracker
+            workoutId={workout.id}
+            onPerformanceAdded={() => {
+              toast({
+                title: "Performance Saved",
+                description: "Your workout performance has been recorded"
+              })
+            }}
+          />
+        )
       )}
 
       {/* Completion Form */}
