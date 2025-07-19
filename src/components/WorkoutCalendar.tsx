@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
 import { useSportProfile } from "@/hooks/useSportProfile"
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns"
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek } from "date-fns"
 
 interface ScheduledWorkout {
   id: string
@@ -82,7 +82,9 @@ export function WorkoutCalendar() {
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
-  const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
+  const calendarStart = startOfWeek(monthStart)
+  const calendarEnd = endOfWeek(monthEnd)
+  const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
 
   useEffect(() => {
     if (user) {
@@ -652,12 +654,14 @@ export function WorkoutCalendar() {
               const isSelected = selectedDate && isSameDay(day, selectedDate)
               const isToday = isSameDay(day, new Date())
               const isFuture = day > new Date()
+              const isCurrentMonth = day.getMonth() === currentDate.getMonth()
               
               return (
                 <div
                   key={day.toISOString()}
                   className={`
                     min-h-[80px] p-2 border rounded-lg transition-all relative glass border-0
+                    ${!isCurrentMonth ? 'opacity-30' : ''}
                     ${isFuture ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
                     ${isSelected ? 'ring-2 ring-primary' : ''}
                     ${isToday ? 'bg-primary/10' : !isFuture ? 'hover:bg-muted/50' : ''}
@@ -667,7 +671,7 @@ export function WorkoutCalendar() {
                   onClick={() => !isFuture && setSelectedDate(day)}
                 >
                   <div className="text-sm font-medium mb-1 flex items-center justify-between">
-                    <span>{format(day, 'd')}</span>
+                    <span className={!isCurrentMonth ? 'text-muted-foreground' : ''}>{format(day, 'd')}</span>
                     {isFuture && dayWorkouts.length > 0 && (
                       <Lock className="h-3 w-3 text-muted-foreground" />
                     )}

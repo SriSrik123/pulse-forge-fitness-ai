@@ -68,12 +68,18 @@ export function WorkoutViewer({ workoutType, workoutId, generatedWorkoutData }: 
   useEffect(() => {
     console.log('WorkoutViewer useEffect triggered:', { workoutId, workoutType, selectedDate, generatedWorkoutData })
     
-    // If we have generated workout data, use it directly
+    // If we have generated workout data, use it directly and persist it
     if (generatedWorkoutData) {
       console.log('Using generated workout data:', generatedWorkoutData)
       setWorkout(generatedWorkoutData)
       setLoading(false)
       setTodayWorkouts([]) // Clear scheduled workouts when showing generated workout
+      return
+    }
+    
+    // If we already have a workout loaded and no new parameters, don't reload
+    if (workout && !workoutId && !generatedWorkoutData) {
+      console.log('Already have workout loaded, not reloading')
       return
     }
     
