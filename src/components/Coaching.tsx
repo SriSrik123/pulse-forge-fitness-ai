@@ -17,6 +17,15 @@ interface Message {
   created_at: string
 }
 
+const SUGGESTED_RESPONSES = [
+  "How can I improve my swimming technique?",
+  "What should I focus on in my next workout?",
+  "Analyze my recent workout performance",
+  "Give me tips for recovery and nutrition",
+  "How am I progressing towards my goals?",
+  "What exercises can help prevent injuries?"
+]
+
 export function Coaching() {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState("")
@@ -116,6 +125,10 @@ export function Coaching() {
     }
   }
 
+  const handleSuggestedResponse = (suggestion: string) => {
+    setInputValue(suggestion)
+  }
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -159,10 +172,23 @@ export function Coaching() {
                 <div className="text-center text-muted-foreground py-8">
                   <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg mb-2">Welcome to your AI Fitness Coach!</p>
-                  <p className="text-sm">
+                  <p className="text-sm mb-4">
                     Ask me about your workouts, progress, form tips, or any fitness-related questions.
                     I have access to your entire workout history to give you personalized advice.
                   </p>
+                  <div className="grid grid-cols-1 gap-2 max-w-md mx-auto">
+                    {SUGGESTED_RESPONSES.map((suggestion, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSuggestedResponse(suggestion)}
+                        className="text-xs text-left justify-start h-auto py-2 px-3"
+                      >
+                        {suggestion}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 messages.map((message) => (
