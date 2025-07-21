@@ -61,19 +61,17 @@ serve(async (req) => {
       recent_workouts: workoutHistory.slice(0, 5)
     };
 
-    // Call OpenAI API
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Gemini API
+    const geminiResponse = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         'Content-Type': 'application/json',
+        'x-goog-api-key': Deno.env.get('GEMINI_API_KEY'),
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert fitness coach with access to the user's workout history and performance data. 
+        contents: [{
+          parts: [{
+            text: `You are an expert fitness coach with access to the user's workout history and performance data. 
 
 User Profile:
 - Primary Sport: ${userContext.sport}
@@ -91,25 +89,25 @@ Provide personalized, actionable fitness advice. You can:
 - Answer general fitness questions
 - Give recovery and nutrition advice
 
-Be encouraging, specific, and reference their actual workout data when relevant. Keep responses concise but helpful.`
-          },
-          {
-            role: 'user',
-            content: message
-          }
-        ],
-        max_tokens: 500,
-        temperature: 0.7
+Be encouraging, specific, and reference their actual workout data when relevant. Keep responses concise but helpful.
+
+User Question: ${message}`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 500,
+        }
       }),
     });
 
-    const openAIData = await openAIResponse.json();
+    const geminiData = await geminiResponse.json();
     
-    if (!openAIResponse.ok) {
-      throw new Error(`OpenAI API error: ${openAIData.error?.message || 'Unknown error'}`);
+    if (!geminiResponse.ok) {
+      throw new Error(`Gemini API error: ${geminiData.error?.message || 'Unknown error'}`);
     }
 
-    const aiMessage = openAIData.choices[0].message.content;
+    const aiMessage = geminiData.candidates[0].content.parts[0].text;
 
     return new Response(
       JSON.stringify({ message: aiMessage }),
