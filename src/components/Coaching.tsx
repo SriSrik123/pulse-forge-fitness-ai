@@ -158,34 +158,39 @@ export function Coaching() {
         </p>
       </div>
 
-      <Card className="h-[600px] flex flex-col">
-        <CardHeader>
+      <Card className="h-[70vh] flex flex-col">
+        <CardHeader className="flex-shrink-0">
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-primary" />
             Coaching Chat
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col p-4">
-          <ScrollArea className="flex-1 pr-4 mb-4" ref={scrollAreaRef}>
+        <CardContent className="flex-1 flex flex-col p-4 min-h-0">
+          <ScrollArea className="flex-1 pr-4 mb-4 max-h-full" ref={scrollAreaRef}>
             <div className="space-y-4">
               {messages.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
                   <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg mb-2">Welcome to your AI Fitness Coach!</p>
-                  <p className="text-sm mb-4">
+                  <p className="text-sm mb-6">
                     Ask me about your workouts, progress, form tips, or any fitness-related questions.
                     I have access to your entire workout history to give you personalized advice.
                   </p>
                   <div className="grid grid-cols-1 gap-2 max-w-md mx-auto">
+                    <p className="text-xs text-muted-foreground mb-2 text-center">Try asking:</p>
                     {SUGGESTED_RESPONSES.map((suggestion, index) => (
                       <Button
                         key={index}
                         variant="outline"
                         size="sm"
-                        onClick={() => handleSuggestedResponse(suggestion)}
-                        className="text-xs text-left justify-start h-auto py-2 px-3"
+                        onClick={() => {
+                          setInputValue(suggestion)
+                          sendMessage()
+                        }}
+                        className="text-xs text-left justify-start h-auto py-3 px-4 hover:bg-primary/10"
+                        disabled={isLoading}
                       >
-                        {suggestion}
+                        💬 {suggestion}
                       </Button>
                     ))}
                   </div>
@@ -246,7 +251,7 @@ export function Coaching() {
             </div>
           </ScrollArea>
           
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-shrink-0">
             <Input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
