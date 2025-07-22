@@ -18,6 +18,9 @@ interface Message {
 }
 
 const SUGGESTED_RESPONSES = [
+  "Create a strength training workout for me",
+  "Design a HIIT cardio session", 
+  "Plan a recovery day workout",
   "How can I improve my swimming technique?",
   "What should I focus on in my next workout?",
   "Analyze my recent workout performance",
@@ -127,6 +130,16 @@ export function Coaching() {
 
   const handleSuggestedResponse = (suggestion: string) => {
     setInputValue(suggestion)
+    // Store workout-related suggestions in localStorage for workout generation
+    if (suggestion.toLowerCase().includes('workout') || 
+        suggestion.toLowerCase().includes('training') || 
+        suggestion.toLowerCase().includes('hiit') ||
+        suggestion.toLowerCase().includes('strength') ||
+        suggestion.toLowerCase().includes('cardio') ||
+        suggestion.toLowerCase().includes('plan')) {
+      localStorage.setItem('coach-suggestions', suggestion)
+    }
+    sendMessage()
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -183,10 +196,7 @@ export function Coaching() {
                         key={index}
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          setInputValue(suggestion)
-                          sendMessage()
-                        }}
+                        onClick={() => handleSuggestedResponse(suggestion)}
                         className="text-xs text-left justify-start h-auto py-3 px-4 hover:bg-primary/10"
                         disabled={isLoading}
                       >

@@ -73,6 +73,9 @@ export function DailyWorkoutGenerator() {
         .order('created_at', { ascending: false })
         .limit(5)
 
+      // Get AI suggestions from coach chat if available
+      const coachSuggestions = localStorage.getItem('coach-suggestions') || ""
+
       const { data } = await supabase.functions.invoke('generate-workout', {
         body: {
           workoutType: selectedWorkoutType,
@@ -84,11 +87,15 @@ export function DailyWorkoutGenerator() {
           sportEquipmentList: equipmentList,
           goals: `Improve ${selectedSport} performance`,
           previousWorkouts: previousWorkouts || [],
-          adaptToProgress: true
+          adaptToProgress: true,
+          coachSuggestions: coachSuggestions
         }
       })
 
       if (data?.workout) {
+        // Clear coach suggestions after use
+        localStorage.removeItem('coach-suggestions')
+
         const workoutData = {
           title: data.workout.title,
           type: data.workout.type,

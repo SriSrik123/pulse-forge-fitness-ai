@@ -52,7 +52,8 @@ serve(async (req) => {
       adaptToProgress = false,
       scheduledWorkoutId = null,
       userPreferences = "",
-      userFeedback = ""
+      userFeedback = "",
+      coachSuggestions = ""
     } = await req.json();
 
     console.log('Generating workout with params:', { workoutType, sport, sessionType, fitnessLevel, duration });
@@ -91,6 +92,14 @@ USER PREFERENCES AND GOALS:
 ${userPreferences}
 
 Please incorporate these preferences into the workout design.
+    ` : "";
+
+    const coachSuggestionsContext = coachSuggestions ? `
+    
+AI COACH SUGGESTIONS:
+${coachSuggestions}
+
+IMPORTANT: Incorporate these AI coach suggestions into the workout design. The user has specifically requested this type of workout through the AI coach.
     ` : "";
 
     // Get user feedback for this sport
@@ -226,7 +235,7 @@ CYCLING SPECIFIC REQUIREMENTS:
       
       prompt = `Generate a ${duration}-minute ${sport} ${sessionType} session for a ${fitnessLevel} level athlete.
       Available equipment: ${availableEquipment}.
-      Goals: ${goals || `improve ${sport} performance`}.${workoutHistory}${preferencesContext}${feedbackContext}${userFeedbackContext}${upcomingEventsContext}${sportSpecificInstructions}
+      Goals: ${goals || `improve ${sport} performance`}.${workoutHistory}${preferencesContext}${coachSuggestionsContext}${feedbackContext}${userFeedbackContext}${upcomingEventsContext}${sportSpecificInstructions}
       
       Please provide a structured ${sessionType} plan with:
       1. Warm-up (5-10 minutes)
@@ -249,7 +258,7 @@ CYCLING SPECIFIC REQUIREMENTS:
     } else {
       prompt = `Generate a ${duration}-minute ${workoutType} workout for a ${fitnessLevel} fitness level person. 
       Equipment available: ${equipment || 'bodyweight only'}. 
-      Goals: ${goals || 'general fitness'}.${workoutHistory}${preferencesContext}${feedbackContext}${userFeedbackContext}
+      Goals: ${goals || 'general fitness'}.${workoutHistory}${preferencesContext}${coachSuggestionsContext}${feedbackContext}${userFeedbackContext}
       
       Please provide a structured workout plan with:
       1. Warm-up (5 minutes)
