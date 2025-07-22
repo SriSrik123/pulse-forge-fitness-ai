@@ -163,16 +163,42 @@ export function WorkoutViewer({ workoutType, workoutId, generatedWorkoutData }: 
     if (!user) return
 
     try {
-      const { data: userWorkouts, error } = await supabase
-        .from('workouts')
-        .select('id, title, workout_type, sport, created_at')
+      const dateStr = format(selectedDate, 'yyyy-MM-dd')
+      
+      // Get scheduled workouts for today that have been generated (have workout_id)
+      const { data: scheduledWorkouts, error } = await supabase
+        .from('scheduled_workouts')
+        .select(`
+          id,
+          title,
+          workout_type,
+          sport,
+          workout_id,
+          workouts!inner(
+            id,
+            title,
+            workout_type,
+            sport,
+            created_at
+          )
+        `)
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20)
+        .eq('scheduled_date', dateStr)
+        .not('workout_id', 'is', null)
+        .order('workout_type', { ascending: true })
 
       if (error) throw error
       
-      setAvailableWorkouts(userWorkouts || [])
+      // Transform the data to match the expected format
+      const availableWorkouts = scheduledWorkouts?.map(sw => ({
+        id: sw.workout_id,
+        title: sw.workouts.title,
+        workout_type: sw.workouts.workout_type,
+        sport: sw.workouts.sport,
+        created_at: sw.workouts.created_at
+      })) || []
+      
+      setAvailableWorkouts(availableWorkouts)
     } catch (error: any) {
       console.error('Error loading available workouts:', error)
     }
