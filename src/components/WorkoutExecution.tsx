@@ -503,3 +503,4 @@ export function WorkoutExecution({ workout, workoutId, onComplete }: WorkoutExec
     </div>
   )
 }
+
