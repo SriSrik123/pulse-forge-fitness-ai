@@ -68,6 +68,7 @@ export function WorkoutCalendar() {
   const [activeTab, setActiveTab] = useState("calendar")
   const [showEventDialog, setShowEventDialog] = useState(false)
   const [showWorkoutDialog, setShowWorkoutDialog] = useState(false)
+  const [showCreateWorkoutDialog, setShowCreateWorkoutDialog] = useState(false)
   const [selectedWorkout, setSelectedWorkout] = useState<CompletedWorkout | null>(null)
   const [eventForm, setEventForm] = useState({
     title: '',
@@ -78,6 +79,14 @@ export function WorkoutCalendar() {
     location: '',
     opponent: '',
     notes: ''
+  })
+  const [customWorkoutForm, setCustomWorkoutForm] = useState({
+    title: '',
+    sport: '',
+    workout_type: '',
+    duration: 60,
+    description: '',
+    date: format(new Date(), 'yyyy-MM-dd')
   })
 
   const monthStart = startOfMonth(currentDate)
@@ -492,8 +501,81 @@ export function WorkoutCalendar() {
   const selectedDateWorkouts = selectedDate ? getWorkoutsForDate(selectedDate) : []
   const selectedDateEvents = selectedDate ? getEventsForDate(selectedDate) : []
 
+  const createCustomWorkout = async () => {
+    if (!user || !customWorkoutForm.title || !customWorkoutForm.sport) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      })
+      return
+    }
+
+    try {
+      // Create a basic workout entry with the user's input
+      const { data, error } = await supabase
+        .from('workouts')
+        .insert({
+          user_id: user.id,
+          title: customWorkoutForm.title,
+          sport: customWorkoutForm.sport,
+          workout_type: customWorkoutForm.workout_type,
+          duration: customWorkoutForm.duration,
+          description: customWorkoutForm.description,
+          exercises: {
+            description: customWorkoutForm.description,
+            exercises: []
+          },
+          completed: true,
+          created_at: `${customWorkoutForm.date}T${new Date().toISOString().split('T')[1]}`
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      toast({
+        title: "Success!",
+        description: "Custom workout saved to your history",
+      })
+
+      setShowCreateWorkoutDialog(false)
+      setCustomWorkoutForm({
+        title: '',
+        sport: '',
+        workout_type: '',
+        duration: 60,
+        description: '',
+        date: format(new Date(), 'yyyy-MM-dd')
+      })
+
+      // Refresh the completed workouts
+      fetchCompletedWorkouts()
+      if (selectedDate) {
+        fetchCompletedWorkoutsForDate(selectedDate)
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to save custom workout",
+        variant: "destructive"
+      })
+    }
+  }
+
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="relative space-y-6 animate-fade-in">
+      {/* Floating Action Button */}
+      <div className="fixed bottom-6 left-6 z-50">
+        <Button
+          onClick={() => setShowCreateWorkoutDialog(true)}
+          className="w-12 h-12 rounded-full bg-gradient-primary hover:bg-gradient-primary-dark shadow-elegant flex items-center justify-center group"
+          size="icon"
+        >
+          <Plus className="h-6 w-6 text-white group-hover:scale-110 transition-transform" />
+        </Button>
+      </div>
+
       <div className="text-center py-4">
         <div className="flex items-center justify-center gap-2 mb-2">
           <CalendarIcon className="h-6 w-6" />
@@ -1035,6 +1117,118 @@ export function WorkoutCalendar() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Custom Workout Creation Dialog */}
+      <Dialog open={showCreateWorkoutDialog} onOpenChange={setShowCreateWorkoutDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create Custom Workout</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="workout-title">Workout Title</Label>
+              <Input
+                id="workout-title"
+                placeholder="My Custom Workout"
+                value={customWorkoutForm.title}
+                onChange={(e) => setCustomWorkoutForm(prev => ({ ...prev, title: e.target.value }))}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="workout-sport">Sport</Label>
+              <Select 
+                value={customWorkoutForm.sport} 
+                onValueChange={(value) => setCustomWorkoutForm(prev => ({ ...prev, sport: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select sport" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="strength">Strength Training</SelectItem>
+                  <SelectItem value="running">Running</SelectItem>
+                  <SelectItem value="cycling">Cycling</SelectItem>
+                  <SelectItem value="swimming">Swimming</SelectItem>
+                  <SelectItem value="basketball">Basketball</SelectItem>
+                  <SelectItem value="soccer">Soccer</SelectItem>
+                  <SelectItem value="tennis">Tennis</SelectItem>
+                  <SelectItem value="yoga">Yoga</SelectItem>
+                  <SelectItem value="cardio">Cardio</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="workout-type">Workout Type</Label>
+              <Select 
+                value={customWorkoutForm.workout_type} 
+                onValueChange={(value) => setCustomWorkoutForm(prev => ({ ...prev, workout_type: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select workout type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="strength">Strength</SelectItem>
+                  <SelectItem value="cardio">Cardio</SelectItem>
+                  <SelectItem value="endurance">Endurance</SelectItem>
+                  <SelectItem value="HIIT">HIIT</SelectItem>
+                  <SelectItem value="flexibility">Flexibility</SelectItem>
+                  <SelectItem value="recovery">Recovery</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="workout-duration">Duration (minutes)</Label>
+              <Input
+                id="workout-duration"
+                type="number"
+                placeholder="60"
+                value={customWorkoutForm.duration}
+                onChange={(e) => setCustomWorkoutForm(prev => ({ ...prev, duration: parseInt(e.target.value) || 60 }))}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="workout-description">Workout Description</Label>
+              <Textarea
+                id="workout-description"
+                placeholder="Describe what you did in this workout..."
+                value={customWorkoutForm.description}
+                onChange={(e) => setCustomWorkoutForm(prev => ({ ...prev, description: e.target.value }))}
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="workout-date">Date</Label>
+              <Input
+                id="workout-date"
+                type="date"
+                value={customWorkoutForm.date}
+                onChange={(e) => setCustomWorkoutForm(prev => ({ ...prev, date: e.target.value }))}
+              />
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button
+                onClick={createCustomWorkout}
+                disabled={!customWorkoutForm.title || !customWorkoutForm.sport}
+                className="flex-1"
+              >
+                Save Workout
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowCreateWorkoutDialog(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
