@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/integrations/supabase/client"
-import { GraduationCap } from "lucide-react"
+import { Logo } from "./Logo"
 
 export function Auth() {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -80,11 +80,7 @@ export function Auth() {
       <Card className="w-full max-w-md glass border-0">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <img 
-              src="/lovable-uploads/a9647f0e-d57c-4573-a4f9-d5491fb9f5de.png" 
-              alt="Coached" 
-              className="w-12 h-12"
-            />
+            <Logo size="md" />
             <h1 className="text-2xl font-bold bg-gradient-to-r from-pulse-blue to-pulse-cyan bg-clip-text text-transparent">
               Coached
             </h1>
