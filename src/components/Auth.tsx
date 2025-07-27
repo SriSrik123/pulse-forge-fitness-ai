@@ -60,7 +60,7 @@ export function Auth() {
         if (error) throw error
 
         toast({
-          title: "Welcome back to CoachMe!",
+          title: "Welcome back to Coached!",
           description: "You have successfully signed in.",
         })
       }
@@ -80,15 +80,17 @@ export function Auth() {
       <Card className="w-full max-w-md glass border-0">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-full pulse-gradient flex items-center justify-center">
-              <GraduationCap className="h-4 w-4 text-white" />
-            </div>
+            <img 
+              src="/lovable-uploads/a9647f0e-d57c-4573-a4f9-d5491fb9f5de.png" 
+              alt="Coached" 
+              className="w-12 h-12"
+            />
             <h1 className="text-2xl font-bold bg-gradient-to-r from-pulse-blue to-pulse-cyan bg-clip-text text-transparent">
-              CoachMe
+              Coached
             </h1>
           </div>
           <CardTitle className="text-xl">
-            {isSignUp ? "Join CoachMe today" : "Welcome back to CoachMe"}
+            {isSignUp ? "Join Coached today" : "Welcome back to Coached"}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -149,9 +151,25 @@ export function Auth() {
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loading..." : (isSignUp ? "Join CoachMe" : "Sign In")}
+              {loading ? "Loading..." : (isSignUp ? "Join Coached" : "Sign In")}
             </Button>
           </form>
+
+          {isSignUp && (
+            <div className="mt-3 text-center">
+              <p className="text-xs text-muted-foreground">
+                By signing up, you agree to our{" "}
+                <a 
+                  href="https://coached-fitness.vercel.app/privacy" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Privacy Policy
+                </a>
+              </p>
+            </div>
+          )}
 
           <div className="mt-4 text-center">
             <Button
@@ -161,7 +179,7 @@ export function Auth() {
             >
               {isSignUp 
                 ? "Already have an account? Sign in" 
-                : "New to CoachMe? Sign up"
+                : "New to Coached? Sign up"
               }
             </Button>
           </div>

@@ -23,11 +23,13 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="flex items-center justify-between px-4 py-3 pt-12 md:pt-3">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-full pulse-gradient flex items-center justify-center">
-              <GraduationCap className="h-4 w-4 text-white" />
-            </div>
+            <img 
+              src="/lovable-uploads/a9647f0e-d57c-4573-a4f9-d5491fb9f5de.png" 
+              alt="Coached" 
+              className="w-8 h-8"
+            />
             <h1 className="text-xl font-bold bg-gradient-to-r from-pulse-blue to-pulse-cyan bg-clip-text text-transparent">
-              CoachMe
+              Coached
             </h1>
           </div>
           <div className="flex items-center gap-2">
