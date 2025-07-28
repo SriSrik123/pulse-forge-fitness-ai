@@ -37,8 +37,8 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       </div>
 
       {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t">
-        <div className="flex items-center justify-around px-2 py-2">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t safe-area-inset-bottom">
+        <div className="flex items-center justify-around px-2 py-2 pb-safe">
           {tabs.map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
@@ -49,14 +49,14 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => onTabChange(tab.id)}
-                className={`flex flex-col items-center space-y-1 h-auto py-2 px-3 ${
+                className={`flex flex-col items-center space-y-1 h-auto py-2 px-1 min-w-0 flex-1 ${
                   isActive 
                     ? 'text-primary bg-primary/10' 
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                <Icon className={`h-5 w-5 ${isActive ? 'text-primary' : ''}`} />
-                <span className="text-xs font-medium">{tab.label}</span>
+                <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-primary' : ''}`} />
+                <span className="text-xs font-medium truncate text-center leading-tight">{tab.label}</span>
               </Button>
             )
           })}

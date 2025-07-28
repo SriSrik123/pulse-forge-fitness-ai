@@ -109,6 +109,12 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.3s ease-out',
 				pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+			},
+			spacing: {
+				'safe': 'env(safe-area-inset-bottom)',
+			},
+			minHeight: {
+				'screen-safe': 'calc(100vh - env(safe-area-inset-bottom))',
 			}
 		}
 	},

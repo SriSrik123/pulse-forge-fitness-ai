@@ -80,6 +80,27 @@
 
   body {
     @apply bg-background text-foreground font-inter;
+    /* Prevent zooming and ensure proper mobile scaling */
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* Prevent horizontal scroll */
+    overflow-x: hidden;
+    /* Ensure full height on mobile */
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+
+  html {
+    /* Fix iOS viewport height issues */
+    height: -webkit-fill-available;
+  }
+
+  * {
+    @apply border-border;
+    /* Prevent text overflow */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
 
   /* Custom gradient backgrounds */
