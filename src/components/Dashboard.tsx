@@ -269,50 +269,50 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange, setActiveTab }) => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Card className="bg-gradient-to-br from-pulse-blue/20 to-pulse-blue/10 border-pulse-blue/20">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center space-x-2">
-              <Flame className="h-5 w-5 text-pulse-blue" />
-              <div>
-                <p className="text-2xl font-bold text-foreground">{streakCount}</p>
-                <p className="text-xs text-muted-foreground">Day Streak</p>
+              <Flame className="h-4 w-4 sm:h-5 sm:w-5 text-pulse-blue flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-lg sm:text-2xl font-bold text-foreground truncate">{streakCount}</p>
+                <p className="text-xs text-muted-foreground truncate">Day Streak</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-pulse-green/20 to-pulse-green/10 border-pulse-green/20">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center space-x-2">
-              <Trophy className="h-5 w-5 text-pulse-green" />
-              <div>
-                <p className="text-2xl font-bold text-foreground">{weeklyProgress.completed}</p>
-                <p className="text-xs text-muted-foreground">This Week</p>
+              <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-pulse-green flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-lg sm:text-2xl font-bold text-foreground truncate">{weeklyProgress.completed}</p>
+                <p className="text-xs text-muted-foreground truncate">This Week</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-pulse-purple/20 to-pulse-purple/10 border-pulse-purple/20">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center space-x-2">
-              <Target className="h-5 w-5 text-pulse-purple" />
-              <div>
-                <p className="text-2xl font-bold text-foreground">{Math.round(progressPercentage)}%</p>
-                <p className="text-xs text-muted-foreground">Weekly Goal</p>
+              <Target className="h-4 w-4 sm:h-5 sm:w-5 text-pulse-purple flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-lg sm:text-2xl font-bold text-foreground truncate">{Math.round(progressPercentage)}%</p>
+                <p className="text-xs text-muted-foreground truncate">Weekly Goal</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-pulse-orange/20 to-pulse-orange/10 border-pulse-orange/20">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center space-x-2">
-              <Calendar className="h-5 w-5 text-pulse-orange" />
-              <div>
-                <p className="text-2xl font-bold text-foreground">{todaysWorkouts.length}</p>
-                <p className="text-xs text-muted-foreground">Today's Plan</p>
+              <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-pulse-orange flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-lg sm:text-2xl font-bold text-foreground truncate">{todaysWorkouts.length}</p>
+                <p className="text-xs text-muted-foreground truncate">Today's Plan</p>
               </div>
             </div>
           </CardContent>
@@ -346,10 +346,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange, setActiveTab }) => {
         <CardContent>
           {selectedWorkout ? (
             <div className="space-y-4">
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col space-y-3 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
                 <div className="space-y-2 flex-1 min-w-0">
                   <h3 className="font-semibold text-foreground truncate">{selectedWorkout.title}</h3>
-                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
                     <span className="capitalize">{selectedWorkout.sport}</span>
                     <span>•</span>
                     <span className="capitalize">{selectedWorkout.workout_type.replace('_', ' ')}</span>
@@ -362,15 +362,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange, setActiveTab }) => {
                   </div>
                   {selectedWorkout.workout?.duration && (
                     <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4" />
+                      <Clock className="h-4 w-4 flex-shrink-0" />
                       <span>{selectedWorkout.workout.duration} minutes</span>
                     </div>
                   )}
                 </div>
-                <div className="flex items-center space-x-2 ml-4">
+                <div className="flex items-center justify-center sm:justify-end space-x-2 sm:ml-4">
                   {selectedWorkout.completed ? (
-                    <Badge variant="secondary" className="bg-pulse-green/20 text-pulse-green">
-                      <CheckCircle className="h-3 w-3 mr-1" />
+                    <Badge variant="secondary" className="bg-pulse-green/20 text-pulse-green whitespace-nowrap">
+                      <CheckCircle className="h-3 w-3 mr-1 flex-shrink-0" />
                       Completed
                     </Badge>
                   ) : (
@@ -378,17 +378,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange, setActiveTab }) => {
                       <Button
                         size="sm"
                         onClick={() => startWorkout(selectedWorkout)}
-                        className="bg-pulse-blue hover:bg-pulse-blue/80"
+                        className="bg-pulse-blue hover:bg-pulse-blue/80 flex-shrink-0"
                       >
                         <Play className="h-4 w-4 mr-1" />
-                        Start
+                        <span className="hidden xs:inline">Start</span>
+                        <span className="xs:hidden">▶</span>
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => markWorkoutComplete(selectedWorkout.id)}
+                        className="flex-shrink-0"
                       >
-                        Mark Done
+                        <span className="hidden xs:inline">Mark Done</span>
+                        <span className="xs:hidden">✓</span>
                       </Button>
                     </>
                   )}
@@ -398,16 +401,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange, setActiveTab }) => {
               {selectedWorkout.workout?.exercises && selectedWorkout.workout.exercises.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-foreground">Exercises:</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2">
                     {selectedWorkout.workout.exercises.slice(0, 4).map((exercise, index) => (
                       <div key={index} className="text-sm text-muted-foreground p-2 rounded bg-muted/50">
-                        {exercise.name}
+                        <div className="truncate font-medium">{exercise.name}</div>
                         {(exercise.sets || exercise.reps) && (
-                          <span className="ml-2 text-xs">
+                          <div className="text-xs mt-1 text-muted-foreground/80">
                             {exercise.sets && `${exercise.sets} sets`}
                             {exercise.sets && exercise.reps && ' × '}
                             {exercise.reps && `${exercise.reps} reps`}
-                          </span>
+                          </div>
                         )}
                       </div>
                     ))}
@@ -464,10 +467,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onTabChange, setActiveTab }) => {
           {recentWorkouts.length > 0 ? (
             <div className="space-y-3">
               {recentWorkouts.map((workout, index) => (
-                <div key={workout.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
+                <div key={workout.id} className="flex flex-col space-y-2 p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
                   <div className="flex-1 min-w-0">
                     <h4 className="font-medium text-foreground truncate">{workout.title}</h4>
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
                       <span className="capitalize">{workout.sport}</span>
                       <span>•</span>
                       <span className="capitalize">{workout.workout_type.replace('_', ' ')}</span>

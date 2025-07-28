@@ -179,19 +179,19 @@ export function FitnessData() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
               <Card className="glass border-0">
                 <CardContent className="p-4 text-center">
-                  <Heart className="h-8 w-8 mx-auto mb-2 text-red-500" />
-                  <div className="text-2xl font-bold">--</div>
+                  <Heart className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-red-500" />
+                  <div className="text-xl sm:text-2xl font-bold">--</div>
                   <div className="text-xs text-muted-foreground">Avg Heart Rate</div>
                   <div className="text-sm">BPM</div>
                 </CardContent>
               </Card>
               <Card className="glass border-0">
                 <CardContent className="p-4 text-center">
-                  <Footprints className="h-8 w-8 mx-auto mb-2 text-blue-500" />
-                  <div className="text-2xl font-bold">--</div>
+                  <Footprints className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-blue-500" />
+                  <div className="text-xl sm:text-2xl font-bold">--</div>
                   <div className="text-xs text-muted-foreground">Steps Today</div>
                   <div className="text-sm">Steps</div>
                 </CardContent>
