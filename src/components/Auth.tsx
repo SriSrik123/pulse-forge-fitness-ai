@@ -55,20 +55,17 @@ export function Auth() {
           description: "Please check your email to verify your account.",
         })
       } else {
-        // Send email with OTP for sign in
-        const { error } = await supabase.auth.signInWithOtp({
+        // Regular login with email and password
+        const { error } = await supabase.auth.signInWithPassword({
           email,
-          options: {
-            shouldCreateUser: false,
-          }
+          password,
         })
 
         if (error) throw error
 
-        setShowVerification(true)
         toast({
-          title: "Verification code sent!",
-          description: "Please check your email for the 6-digit code.",
+          title: "Welcome back to Coached!",
+          description: "You have successfully signed in.",
         })
       }
     } catch (error: any) {
@@ -176,22 +173,20 @@ export function Auth() {
                   />
                 </div>
 
-                {isSignUp && (
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
 
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Loading..." : (isSignUp ? "Join Coached" : "Send Code")}
+                  {loading ? "Loading..." : (isSignUp ? "Join Coached" : "Sign In")}
                 </Button>
               </form>
 
