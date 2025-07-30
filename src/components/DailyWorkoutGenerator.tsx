@@ -135,10 +135,15 @@ export function DailyWorkoutGenerator() {
           lastError = error
           retryCount++
           
-          if (retryCount <= maxRetries) {
-            console.log(`Retry attempt ${retryCount}/${maxRetries} for workout generation`)
-            // Progressive delay: 1s, 2s
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
+          // Check if it's a rate limiting error from Gemini
+          if (error.message && error.message.includes('overloaded')) {
+            console.log(`AI service overloaded, retry attempt ${retryCount}/${maxRetries}`)
+            if (retryCount <= maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 2000 * retryCount)) // 2s, 4s, 6s
+            }
+          } else if (retryCount <= maxRetries) {
+            console.log(`Retry attempt ${retryCount}/${maxRetries}`)
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)) // Progressive delay
           }
         }
       }

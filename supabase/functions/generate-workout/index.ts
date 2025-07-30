@@ -294,51 +294,94 @@ CYCLING SPECIFIC REQUIREMENTS:
 
     console.log('Calling Gemini API...');
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }]
-      })
-    });
+    // Implement retry logic with exponential backoff for rate limiting
+    let retryCount = 0;
+    const maxRetries = 3;
+    let lastError = null;
 
-    const data = await response.json();
-    
-    if (!response.ok) {
-      console.error('Gemini API Error:', data);
-      throw new Error(data.error?.message || 'Failed to generate workout from AI service');
-    }
-    
-    console.log('Gemini API response received');
+    while (retryCount <= maxRetries) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }]
+          })
+        });
 
-    let workout;
-    
-    if (data.candidates && data.candidates[0]) {
-      const workoutText = data.candidates[0].content.parts[0].text;
-      console.log('Raw workout text:', workoutText);
-      
-      const jsonMatch = workoutText.match(/\{[\s\S]*\}/);
-      
-      if (jsonMatch) {
-        try {
-          workout = JSON.parse(jsonMatch[0]);
-          console.log('Parsed workout:', workout);
-        } catch (parseError) {
-          console.error('JSON Parse Error:', parseError);
-          workout = createFallbackWorkout(sport, sessionType, workoutType, duration);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          console.error('Gemini API Error:', data);
+          
+          // Check if it's a rate limiting error
+          if (response.status === 429 || 
+              (data.error && data.error.message && data.error.message.includes('overloaded'))) {
+            lastError = new Error('AI service is currently overloaded. Please try again in a moment.');
+            retryCount++;
+            
+            if (retryCount <= maxRetries) {
+              console.log(`Rate limited, retry attempt ${retryCount}/${maxRetries}`);
+              // Exponential backoff: 2s, 4s, 8s
+              await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+              continue;
+            }
+          } else {
+            throw new Error(data.error?.message || 'Failed to generate workout from AI service');
+          }
+        } else {
+          console.log('Gemini API response received successfully');
+          
+          let workout;
+          
+          if (data.candidates && data.candidates[0]) {
+            const workoutText = data.candidates[0].content.parts[0].text;
+            console.log('Raw workout text:', workoutText);
+            
+            const jsonMatch = workoutText.match(/\{[\s\S]*\}/);
+            
+            if (jsonMatch) {
+              try {
+                workout = JSON.parse(jsonMatch[0]);
+                console.log('Parsed workout:', workout);
+              } catch (parseError) {
+                console.error('JSON Parse Error:', parseError);
+                workout = createFallbackWorkout(sport, sessionType, workoutType, duration);
+              }
+            } else {
+              console.log('No JSON found in response, using fallback');
+              workout = createFallbackWorkout(sport, sessionType, workoutType, duration);
+            }
+          } else {
+            console.log('No candidates in response, using fallback');
+            workout = createFallbackWorkout(sport, sessionType, workoutType, duration);
+          }
+          
+          // Success! Break out of retry loop
+          break;
         }
-      } else {
-        console.log('No JSON found in response, using fallback');
-        workout = createFallbackWorkout(sport, sessionType, workoutType, duration);
+        
+      } catch (fetchError) {
+        console.error(`Fetch attempt ${retryCount + 1} failed:`, fetchError);
+        lastError = fetchError;
+        retryCount++;
+        
+        if (retryCount <= maxRetries) {
+          console.log(`Network error, retry attempt ${retryCount}/${maxRetries}`);
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+        }
       }
-    } else {
-      console.log('No candidates in response, using fallback');
+    }
+
+    // If we exhausted all retries, use fallback workout
+    if (retryCount > maxRetries) {
+      console.log('All retries exhausted, using fallback workout');
       workout = createFallbackWorkout(sport, sessionType, workoutType, duration);
     }
 
