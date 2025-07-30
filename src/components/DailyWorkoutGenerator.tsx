@@ -76,56 +76,81 @@ export function DailyWorkoutGenerator() {
       // Get AI suggestions from coach chat if available
       const coachSuggestions = localStorage.getItem('coach-suggestions') || ""
 
-      const { data } = await supabase.functions.invoke('generate-workout', {
-        body: {
-          workoutType: selectedWorkoutType,
-          sport: selectedSport,
-          sessionType: selectedWorkoutType,
-          fitnessLevel: profile.experienceLevel,
-          duration: profile.sessionDuration,
-          equipment: equipmentList,
-          sportEquipmentList: equipmentList,
-          goals: `Improve ${selectedSport} performance`,
-          previousWorkouts: previousWorkouts || [],
-          adaptToProgress: true,
-          coachSuggestions: coachSuggestions
-        }
-      })
+      // Add retry logic for better reliability
+      let retryCount = 0
+      const maxRetries = 2
+      let lastError = null
 
-      if (data?.workout) {
-        // Clear coach suggestions after use
-        localStorage.removeItem('coach-suggestions')
+      while (retryCount <= maxRetries) {
+        try {
+          const { data, error } = await supabase.functions.invoke('generate-workout', {
+            body: {
+              workoutType: selectedWorkoutType,
+              sport: selectedSport,
+              sessionType: selectedWorkoutType,
+              fitnessLevel: profile.experienceLevel,
+              duration: profile.sessionDuration,
+              equipment: equipmentList,
+              sportEquipmentList: equipmentList,
+              goals: `Improve ${selectedSport} performance`,
+              previousWorkouts: previousWorkouts || [],
+              adaptToProgress: true,
+              coachSuggestions: coachSuggestions
+            }
+          })
 
-        const workoutData = {
-          title: data.workout.title,
-          type: data.workout.type,
-          sport: data.workout.sport,
-          duration: parseInt(data.workout.duration) || profile.sessionDuration || 60,
-          warmup: data.workout.warmup || [],
-          exercises: data.workout.exercises || [],
-          cooldown: data.workout.cooldown || []
+          if (error) {
+            throw new Error(error.message || 'Edge function returned an error')
+          }
+
+          if (data?.workout) {
+            // Clear coach suggestions after use
+            localStorage.removeItem('coach-suggestions')
+
+            const workoutData = {
+              title: data.workout.title,
+              type: data.workout.type,
+              sport: data.workout.sport,
+              duration: parseInt(data.workout.duration) || profile.sessionDuration || 60,
+              warmup: data.workout.warmup || [],
+              exercises: data.workout.exercises || [],
+              cooldown: data.workout.cooldown || []
+            }
+            
+            toast({
+              title: "Workout Generated!",
+              description: "Your personalized workout is ready.",
+            })
+            
+            // Dispatch event to navigate to today's workout and show the generated workout
+            window.dispatchEvent(new CustomEvent('showGeneratedWorkout', { 
+              detail: { workoutData } 
+            }))
+            return // Success, exit retry loop
+          } else {
+            throw new Error('No workout data received from server')
+          }
+
+        } catch (error: any) {
+          lastError = error
+          retryCount++
+          
+          if (retryCount <= maxRetries) {
+            console.log(`Retry attempt ${retryCount}/${maxRetries} for workout generation`)
+            // Progressive delay: 1s, 2s
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
+          }
         }
-        
-        toast({
-          title: "Workout Generated!",
-          description: "Your personalized workout is ready.",
-        })
-        
-        // Dispatch event to navigate to today's workout and show the generated workout
-        window.dispatchEvent(new CustomEvent('showGeneratedWorkout', { 
-          detail: { workoutData } 
-        }))
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to generate workout. Please try again.",
-          variant: "destructive"
-        })
       }
+
+      // If we get here, all retries failed
+      throw lastError
+
     } catch (error: any) {
+      console.error('Failed to generate workout after all retries:', error)
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Generation Failed", 
+        description: error.message || "Failed to generate workout. Please check your connection and try again.",
         variant: "destructive"
       })
     } finally {

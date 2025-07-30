@@ -37,7 +37,7 @@ export function Auth() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/`,
+            emailRedirectTo: `app.lovable.a0147a6942cb4db7a4a4a13287c24c96://auth-callback`,
             data: {
               full_name: fullName,
               username: username,
