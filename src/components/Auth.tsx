@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,7 +15,6 @@ export function Auth() {
   const [username, setUsername] = useState("")
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
-  const navigate = useNavigate()
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,52 +22,36 @@ export function Auth() {
 
     try {
       if (isSignUp) {
-        // Check if email is already registered
-        const { data: existingUser } = await supabase.auth.signInWithPassword({
-          email,
-          password: "dummy-check"
-        })
-        
-        if (existingUser.user) {
-          throw new Error('An account with this email already exists. Please sign in instead.')
-        }
-
-        // Check if username is available
-        const { data: existingUsername } = await supabase
+        // Check if username is available first
+        const { data: existingUser } = await supabase
           .from('profiles')
           .select('username')
           .eq('username', username)
           .single()
 
-        if (existingUsername) {
+        if (existingUser) {
           throw new Error('Username is already taken')
         }
 
-        // Send OTP for email verification
-        const { error } = await supabase.auth.signInWithOtp({
+        const { error } = await supabase.auth.signUp({
           email,
+          password,
           options: {
-            shouldCreateUser: true,
+            emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              full_name: fullName,
+              username: username,
+            }
           }
         })
 
         if (error) throw error
 
-        // Navigate to verification page with signup data
-        const searchParams = new URLSearchParams({
-          email,
-          password,
-          fullName,
-          username,
-        })
-        navigate(`/verify-email?${searchParams.toString()}`)
-
         toast({
-          title: "Verification code sent!",
-          description: "Please check your email for the 6-digit code.",
+          title: "Account created!",
+          description: "Please check your email to verify your account.",
         })
       } else {
-        // Regular login with email and password
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -83,59 +65,11 @@ export function Auth() {
         })
       }
     } catch (error: any) {
-      // If email check fails with "Invalid login credentials", it means email doesn't exist (good for signup)
-      if (isSignUp && error.message === "Invalid login credentials") {
-        try {
-          // Check if username is available
-          const { data: existingUsername } = await supabase
-            .from('profiles')
-            .select('username')
-            .eq('username', username)
-            .single()
-
-          if (existingUsername) {
-            throw new Error('Username is already taken')
-          }
-
-          // Send OTP for email verification
-          const { error } = await supabase.auth.signInWithOtp({
-            email,
-            options: {
-              shouldCreateUser: true,
-            }
-          })
-
-          if (error) throw error
-
-          // Navigate to verification page with signup data
-          const searchParams = new URLSearchParams({
-            email,
-            password,
-            fullName,
-            username,
-          })
-          navigate(`/verify-email?${searchParams.toString()}`)
-
-          toast({
-            title: "Verification code sent!",
-            description: "Please check your email for the 6-digit code.",
-          })
-          setLoading(false)
-          return
-        } catch (innerError: any) {
-          toast({
-            title: "Error",
-            description: innerError.message,
-            variant: "destructive",
-          })
-        }
-      } else {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        })
-      }
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }

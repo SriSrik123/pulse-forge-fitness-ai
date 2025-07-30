@@ -1,6 +1,5 @@
 
 import { useState } from "react"
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as Sonner } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -21,7 +20,6 @@ import { Settings } from "./components/Settings"
 import { FitnessData } from "./components/FitnessData"
 import { Auth } from "./components/Auth"
 import { OnboardingSurvey } from "./components/OnboardingSurvey"
-import VerifyEmail from "./pages/VerifyEmail"
 import { useOnboarding } from "./hooks/useOnboarding"
 
 const queryClient = new QueryClient()
@@ -124,12 +122,7 @@ const App = () => {
       <ThemeProvider defaultTheme="dark" storageKey="pulsetrack-ui-theme">
         <TooltipProvider>
           <AuthProvider>
-            <Router>
-              <Routes>
-                <Route path="/verify-email" element={<VerifyEmail />} />
-                <Route path="*" element={<AppContent />} />
-              </Routes>
-            </Router>
+            <AppContent />
             <Toaster />
             <Sonner />
           </AuthProvider>
