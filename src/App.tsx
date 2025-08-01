@@ -25,11 +25,8 @@ import { useOnboarding } from "./hooks/useOnboarding"
 const queryClient = new QueryClient()
 
 function AppContent() {
-  console.log('AppContent rendering...')
   const { user, loading } = useAuth()
-  console.log('User:', user, 'Loading:', loading)
   const { needsOnboarding, loading: onboardingLoading, completeOnboarding } = useOnboarding()
-  console.log('Onboarding needed:', needsOnboarding, 'Onboarding loading:', onboardingLoading)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null)
   const [workoutType, setWorkoutType] = useState<string | null>(null)
