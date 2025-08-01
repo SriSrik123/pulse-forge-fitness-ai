@@ -156,49 +156,26 @@ const Profile: React.FC = () => {
     setIsEditing(false)
   }
 
-  // Mock achievements data (in a real app, this would come from the database)
-  const achievements = [
-    {
-      id: '1',
-      name: 'First Workout',
-      description: 'Complete your first workout',
-      icon: Trophy,
-      category: 'milestone',
-      points: 10,
-      earned: true,
-      earnedDate: '2024-01-15'
+  // Load real achievements from database
+  const { data: userAchievements = [] } = useQuery({
+    queryKey: ['user-achievements', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return []
+      
+      const { data, error } = await supabase
+        .from('user_achievements')
+        .select(`
+          *,
+          achievements (*)
+        `)
+        .eq('user_id', user.id)
+        .order('earned_at', { ascending: false })
+
+      if (error) throw error
+      return data || []
     },
-    {
-      id: '2',
-      name: 'Week Warrior',
-      description: 'Complete 7 workouts in a week',
-      icon: Target,
-      category: 'consistency',
-      points: 25,
-      earned: true,
-      earnedDate: '2024-01-22'
-    },
-    {
-      id: '3',
-      name: 'Speed Demon',
-      description: 'Complete a workout in under 30 minutes',
-      icon: Zap,
-      category: 'performance',
-      points: 15,
-      earned: false,
-      earnedDate: ''
-    },
-    {
-      id: '4',
-      name: 'Goal Crusher',
-      description: 'Complete 5 fitness goals',
-      icon: Award,
-      category: 'achievement',
-      points: 50,
-      earned: false,
-      earnedDate: ''
-    }
-  ]
+    enabled: !!user?.id
+  })
 
   if (profileLoading) {
     return (
@@ -369,7 +346,7 @@ const Profile: React.FC = () => {
         
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-500">{stats?.totalAchievements || 0}</div>
+            <div className="text-2xl font-bold text-yellow-500">{userAchievements.length}</div>
             <p className="text-sm text-muted-foreground">Achievements</p>
           </CardContent>
         </Card>
@@ -387,18 +364,26 @@ const Profile: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
-            {achievements.slice(0, 3).map((achievement) => (
-              <AchievementCard
-                key={achievement.id}
-                icon={achievement.icon}
-                title={achievement.name}
-                description={achievement.description}
-                progress={achievement.earned ? 1 : 0}
-                maxProgress={1}
-                isUnlocked={achievement.earned}
-                rarity="common"
-              />
-            ))}
+            {userAchievements.length > 0 ? (
+              userAchievements.slice(0, 3).map((userAchievement: any) => (
+                <AchievementCard
+                  key={userAchievement.id}
+                  icon={Trophy}
+                  title={userAchievement.achievements.name}
+                  description={userAchievement.achievements.description}
+                  progress={1}
+                  maxProgress={1}
+                  isUnlocked={true}
+                  rarity="common"
+                />
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Trophy className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>No achievements yet</p>
+                <p className="text-sm">Complete workouts to earn your first achievement!</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

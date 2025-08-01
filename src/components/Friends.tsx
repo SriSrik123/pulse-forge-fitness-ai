@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Users, Search, UserPlus, Check, X } from "lucide-react"
+import { Users, Search, UserPlus, Check, X, Dumbbell } from "lucide-react"
 import { toast } from "sonner"
+import { FriendWorkouts } from "./FriendWorkouts"
 
 interface Profile {
   id: string
@@ -32,6 +33,7 @@ export function Friends() {
   const [friends, setFriends] = useState<Friend[]>([])
   const [friendRequests, setFriendRequests] = useState<Friend[]>([])
   const [loading, setLoading] = useState(false)
+  const [selectedFriend, setSelectedFriend] = useState<{ id: string, name: string } | null>(null)
 
   const searchUsers = async (query: string) => {
     if (!query.trim()) {
@@ -44,8 +46,9 @@ export function Friends() {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, username, full_name, avatar_url')
-        .ilike('username', `%${query}%`)
+        .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
         .neq('id', user?.id)
+        .not('username', 'is', null)
         .limit(10)
 
       if (error) throw error
@@ -163,6 +166,16 @@ export function Friends() {
     return () => clearTimeout(timeoutId)
   }, [searchQuery])
 
+  if (selectedFriend) {
+    return (
+      <FriendWorkouts 
+        friendId={selectedFriend.id}
+        friendName={selectedFriend.name}
+        onClose={() => setSelectedFriend(null)}
+      />
+    )
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Search Users */}
@@ -276,16 +289,29 @@ export function Friends() {
           ) : (
             <div className="space-y-2">
               {friends.map((friend) => (
-                <div key={friend.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/20">
-                  <Avatar className="w-10 h-10">
-                    <AvatarFallback className="bg-gradient-to-br from-pulse-blue to-pulse-cyan text-white">
-                      {friend.friend_profile?.full_name?.charAt(0) || friend.friend_profile?.username?.charAt(0) || '?'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-medium">{friend.friend_profile?.full_name || 'No name'}</div>
-                    <div className="text-sm text-muted-foreground">@{friend.friend_profile?.username}</div>
+                <div key={friend.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-10 h-10">
+                      <AvatarFallback className="bg-gradient-to-br from-pulse-blue to-pulse-cyan text-white">
+                        {friend.friend_profile?.full_name?.charAt(0) || friend.friend_profile?.username?.charAt(0) || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium">{friend.friend_profile?.full_name || 'No name'}</div>
+                      <div className="text-sm text-muted-foreground">@{friend.friend_profile?.username}</div>
+                    </div>
                   </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setSelectedFriend({
+                      id: friend.friend_id,
+                      name: friend.friend_profile?.full_name || friend.friend_profile?.username || 'Friend'
+                    })}
+                  >
+                    <Dumbbell className="h-4 w-4 mr-1" />
+                    Workouts
+                  </Button>
                 </div>
               ))}
             </div>
