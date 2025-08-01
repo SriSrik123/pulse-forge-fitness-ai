@@ -36,20 +36,22 @@ export function Friends() {
   const [selectedFriend, setSelectedFriend] = useState<{ id: string, name: string } | null>(null)
 
   const searchUsers = async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([])
-      return
-    }
+    if (!user?.id) return
 
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      let supabaseQuery = supabase
         .from('profiles')
         .select('id, username, full_name, avatar_url')
-        .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
-        .neq('id', user?.id)
+        .neq('id', user.id)
         .not('username', 'is', null)
         .limit(10)
+
+      if (query.trim()) {
+        supabaseQuery = supabaseQuery.or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
+      }
+
+      const { data, error } = await supabaseQuery
 
       if (error) throw error
       setSearchResults(data || [])
@@ -60,6 +62,11 @@ export function Friends() {
       setLoading(false)
     }
   }
+
+  // Load some users on component mount for browsing
+  useEffect(() => {
+    searchUsers("")
+  }, [user?.id])
 
   const sendFriendRequest = async (friendId: string) => {
     try {
@@ -190,7 +197,7 @@ export function Friends() {
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by username..."
+              placeholder="Search by username or name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -198,6 +205,12 @@ export function Friends() {
           </div>
           
           {loading && <div className="text-center text-muted-foreground">Searching...</div>}
+          
+          {searchResults.length === 0 && !loading && (
+            <div className="text-center text-muted-foreground py-4">
+              {searchQuery.trim() ? "No users found. Try different search terms." : "Browse users by typing in the search box above."}
+            </div>
+          )}
           
           <div className="space-y-2">
             {searchResults.map((profile) => (
