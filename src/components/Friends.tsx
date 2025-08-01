@@ -48,7 +48,8 @@ export function Friends() {
         .limit(10)
 
       if (query.trim()) {
-        supabaseQuery = supabaseQuery.or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
+        // Search for usernames that START with the query for predictive search
+        supabaseQuery = supabaseQuery.or(`username.ilike.${query}%,full_name.ilike.${query}%`)
       }
 
       const { data, error } = await supabaseQuery
@@ -168,7 +169,7 @@ export function Friends() {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       searchUsers(searchQuery)
-    }, 300)
+    }, 150) // Reduced delay for more responsive predictive search
 
     return () => clearTimeout(timeoutId)
   }, [searchQuery])
@@ -197,7 +198,7 @@ export function Friends() {
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by username or name..."
+              placeholder="Type to find friends (e.g., 'N' for names starting with N)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
