@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { useToast } from "@/hooks/use-toast"
 import { PerformanceTracker } from "./PerformanceTracker"
 import { SwimmingPerformanceTracker } from "./SwimmingPerformanceTracker"
+import { WorkoutFeedbackForm } from "./WorkoutFeedbackForm"
 
 interface WorkoutCompletionProps {
   workout: any
@@ -32,6 +33,8 @@ export function WorkoutCompletion({ workout, onComplete }: WorkoutCompletionProp
   const [feelingSlider, setFeelingSlider] = useState([3])
   const [isCompleting, setIsCompleting] = useState(false)
   const [showPerformanceTracker, setShowPerformanceTracker] = useState(true)
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false)
+  const [workoutCompleted, setWorkoutCompleted] = useState(false)
 
   const handleShare = async () => {
     const feelingValue = feelingOptions.find(f => f.value === feelingSlider[0])?.label || 'Okay'
@@ -89,7 +92,8 @@ export function WorkoutCompletion({ workout, onComplete }: WorkoutCompletionProp
         description: "Great job! Your workout has been saved to your history.",
       })
 
-      onComplete()
+      setWorkoutCompleted(true)
+      setShowFeedbackForm(true)
     } catch (error) {
       console.error('Error completing workout:', error)
       toast({
@@ -191,7 +195,7 @@ export function WorkoutCompletion({ workout, onComplete }: WorkoutCompletionProp
             
             <Button 
               onClick={handleComplete}
-              disabled={isCompleting}
+              disabled={isCompleting || workoutCompleted}
               className="flex-1 pulse-gradient text-white font-semibold"
             >
               {isCompleting ? (
@@ -209,6 +213,14 @@ export function WorkoutCompletion({ workout, onComplete }: WorkoutCompletionProp
           </div>
         </CardContent>
       </Card>
+
+      {/* Feedback Form - shown after workout completion */}
+      {showFeedbackForm && workoutCompleted && (
+        <WorkoutFeedbackForm 
+          workout={workout}
+          onFeedbackSubmitted={onComplete}
+        />
+      )}
     </div>
   )
 }

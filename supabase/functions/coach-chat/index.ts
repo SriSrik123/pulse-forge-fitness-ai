@@ -33,6 +33,16 @@ serve(async (req) => {
 
     if (workoutsError) throw workoutsError;
 
+    // Get recent workout feedback
+    const { data: feedback, error: feedbackError } = await supabase
+      .from('workout_feedback')
+      .select('*')
+      .eq('user_id', user_id)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (feedbackError && feedbackError.code !== 'PGRST116') throw feedbackError;
+
     // Get user's sport profile
     const { data: profile, error: profileError } = await supabase
       .from('user_sport_profiles')
@@ -58,7 +68,8 @@ serve(async (req) => {
       sport: profile?.primary_sport || 'general fitness',
       experience: profile?.experience_level || 'beginner',
       goals: profile?.current_goals || 'general fitness',
-      recent_workouts: workoutHistory.slice(0, 5)
+      recent_workouts: workoutHistory.slice(0, 5),
+      recent_feedback: feedback || []
     };
 
     // Call Gemini API
@@ -81,13 +92,17 @@ User Profile:
 Recent Workout History:
 ${JSON.stringify(userContext.recent_workouts, null, 2)}
 
-Provide personalized, actionable fitness advice. You can:
+Recent Workout Feedback:
+${JSON.stringify(userContext.recent_feedback, null, 2)}
+
+Provide personalized, actionable fitness advice. When users provide feedback about their workouts being too easy/hard/challenging, incorporate this information into future workout suggestions. You can:
 - Analyze workout patterns and suggest improvements
 - Comment on performance trends
 - Provide form and technique tips
 - Suggest workout modifications
 - Answer general fitness questions
 - Give recovery and nutrition advice
+- Adjust future workout intensity based on feedback
 
 Be encouraging, specific, and reference their actual workout data when relevant. Keep responses concise but helpful.
 

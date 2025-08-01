@@ -149,52 +149,54 @@ export function SwimmingPerformanceTracker({ workout, workoutId, onPerformanceAd
 
         <div className="space-y-3">
           {sets.map((set, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
-              <div className="md:col-span-1">
-                <Label className="text-xs">Exercise/Set</Label>
+            <div key={index} className="space-y-3 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
+              <div>
+                <Label className="text-sm font-semibold text-blue-700 dark:text-blue-300">Exercise/Set</Label>
                 <Input
                   value={set.exerciseName}
                   onChange={(e) => updateSet(index, 'exerciseName', e.target.value)}
                   placeholder="e.g., 4x50 freestyle"
-                  className="text-sm"
+                  className="text-sm mt-1 bg-white/70 dark:bg-gray-800/70"
                 />
               </div>
               
-              <div>
-                <Label className="text-xs">Target Interval</Label>
-                <Input
-                  value={set.targetInterval}
-                  onChange={(e) => updateSet(index, 'targetInterval', formatTimeInput(e.target.value))}
-                  placeholder="1:00"
-                  className="text-sm font-mono"
-                />
-              </div>
-              
-              <div>
-                <Label className="text-xs font-semibold text-blue-600">Actual Time *</Label>
-                <Input
-                  value={set.actualTime}
-                  onChange={(e) => updateSet(index, 'actualTime', formatTimeInput(e.target.value))}
-                  placeholder="1:10"
-                  className="text-sm font-mono border-blue-300 focus:border-blue-500"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Target Interval</Label>
+                  <Input
+                    value={set.targetInterval}
+                    onChange={(e) => updateSet(index, 'targetInterval', formatTimeInput(e.target.value))}
+                    placeholder="1:00"
+                    className="text-sm font-mono mt-1"
+                  />
+                </div>
+                
+                <div>
+                  <Label className="text-xs text-muted-foreground">Actual Time *</Label>
+                  <Input
+                    value={set.actualTime}
+                    onChange={(e) => updateSet(index, 'actualTime', formatTimeInput(e.target.value))}
+                    placeholder="1:10"
+                    className="text-sm font-mono mt-1 border-blue-300 focus:border-blue-500"
+                  />
+                </div>
               </div>
               
               <div className="flex items-end gap-2">
                 <div className="flex-1">
-                  <Label className="text-xs">Notes</Label>
+                  <Label className="text-xs text-muted-foreground">Notes</Label>
                   <Input
                     value={set.notes}
                     onChange={(e) => updateSet(index, 'notes', e.target.value)}
-                    placeholder="felt good"
-                    className="text-sm"
+                    placeholder="felt good, need to work on technique"
+                    className="text-sm mt-1"
                   />
                 </div>
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={() => removeSet(index)}
-                  className="mb-0"
+                  className="mb-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                 >
                   <X className="h-4 w-4" />
                 </Button>

@@ -53,7 +53,8 @@ serve(async (req) => {
       scheduledWorkoutId = null,
       userPreferences = "",
       userFeedback = "",
-      coachSuggestions = ""
+      coachSuggestions = "",
+      workoutFeedback = []
     } = await req.json();
 
     console.log('Generating workout with params:', { workoutType, sport, sessionType, fitnessLevel, duration });
@@ -102,8 +103,12 @@ ${coachSuggestions}
 IMPORTANT: Incorporate these AI coach suggestions into the workout design. The user has specifically requested this type of workout through the AI coach.
     ` : "";
 
-    // Get user feedback for this sport
+    // Get user feedback for this sport and add passed feedback
     let feedbackContext = "";
+    
+    // Combine database feedback with passed feedback
+    const allFeedback = [];
+    
     if (sport) {
       try {
         const { data: feedback } = await supabaseClient
@@ -115,17 +120,32 @@ IMPORTANT: Incorporate these AI coach suggestions into the workout design. The u
           .limit(5);
 
         if (feedback && feedback.length > 0) {
-          feedbackContext = `
-          
-USER FEEDBACK FROM PREVIOUS WORKOUTS:
-${feedback.map(f => `- ${f.feedback_text} (${f.feedback_type})`).join('\n')}
-
-IMPORTANT: Please incorporate this feedback into the workout design and adjust accordingly.
-          `;
+          allFeedback.push(...feedback.map(f => `${f.feedback_text} (${f.feedback_type})`));
         }
       } catch (error) {
         console.error('Error fetching user feedback:', error);
       }
+    }
+    
+    // Add passed workout feedback
+    if (workoutFeedback && workoutFeedback.length > 0) {
+      allFeedback.push(...workoutFeedback.map((f: any) => 
+        `Rating: ${f.rating} | ${f.feedback} (${f.workout_type || 'general'} workout)`
+      ));
+    }
+    
+    if (allFeedback.length > 0) {
+      feedbackContext = `
+      
+USER FEEDBACK FROM PREVIOUS WORKOUTS:
+${allFeedback.join('\n- ')}
+
+CRITICAL: Adjust workout intensity based on feedback:
+- If "too-easy" mentioned: Increase intensity, add more challenging exercises
+- If "too-hard" mentioned: Reduce intensity, longer rest periods, simpler exercises  
+- If "challenging" mentioned: Maintain current level, perfect intensity
+- If technique/form issues mentioned: Focus on form cues and simpler movements
+      `;
     }
 
     const userFeedbackContext = userFeedback ? `

@@ -75,6 +75,12 @@ export function DailyWorkoutGenerator() {
 
       // Get AI suggestions from coach chat if available
       const coachSuggestions = localStorage.getItem('coach-suggestions') || ""
+      
+      // Get previous workout feedback for intensity adjustment
+      const workoutFeedback = JSON.parse(localStorage.getItem('workout-feedback') || '[]')
+      const recentFeedback = workoutFeedback
+        .filter((f: any) => f.sport === selectedSport)
+        .slice(-3) // Last 3 feedback entries for this sport
 
       // Add retry logic for better reliability
       let retryCount = 0
@@ -95,7 +101,8 @@ export function DailyWorkoutGenerator() {
               goals: `Improve ${selectedSport} performance`,
               previousWorkouts: previousWorkouts || [],
               adaptToProgress: true,
-              coachSuggestions: coachSuggestions
+              coachSuggestions: coachSuggestions,
+              workoutFeedback: recentFeedback
             }
           })
 
