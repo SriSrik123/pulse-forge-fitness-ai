@@ -9,6 +9,7 @@ import { Logo } from "./Logo"
 
 export function Auth() {
   const [isSignUp, setIsSignUp] = useState(false)
+  const [isMagicLink, setIsMagicLink] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [fullName, setFullName] = useState("")
@@ -21,7 +22,21 @@ export function Auth() {
     setLoading(true)
 
     try {
-      if (isSignUp) {
+      if (isMagicLink) {
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: `add.coached.a0147a6942cb4db7a4a4a13287c24c96://auth-callback`,
+          }
+        })
+
+        if (error) throw error
+
+        toast({
+          title: "Magic link sent!",
+          description: "Check your email and click the magic link to sign in.",
+        })
+      } else if (isSignUp) {
         // Check if username is available first
         const { data: existingUser } = await supabase
           .from('profiles')
@@ -37,7 +52,7 @@ export function Auth() {
           email,
           password,
           options: {
-            emailRedirectTo: `app.lovable.a0147a6942cb4db7a4a4a13287c24c96://auth-callback`,
+            emailRedirectTo: `add.coached.a0147a6942cb4db7a4a4a13287c24c96://auth-callback`,
             data: {
               full_name: fullName,
               username: username,
@@ -86,12 +101,12 @@ export function Auth() {
             </h1>
           </div>
           <CardTitle className="text-xl">
-            {isSignUp ? "Join Coached today" : "Welcome back to Coached"}
+            {isMagicLink ? "Sign in with magic link" : isSignUp ? "Join Coached today" : "Welcome back to Coached"}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAuth} className="space-y-4">
-            {isSignUp && (
+            {isSignUp && !isMagicLink && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full Name</Label>
@@ -134,20 +149,22 @@ export function Auth() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+            {!isMagicLink && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loading..." : (isSignUp ? "Join Coached" : "Sign In")}
+              {loading ? "Loading..." : isMagicLink ? "Send Magic Link" : (isSignUp ? "Join Coached" : "Sign In")}
             </Button>
           </form>
 
@@ -167,17 +184,39 @@ export function Auth() {
             </div>
           )}
 
-          <div className="mt-4 text-center">
-            <Button
-              variant="link"
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-sm"
-            >
-              {isSignUp 
-                ? "Already have an account? Sign in" 
-                : "New to Coached? Sign up"
-              }
-            </Button>
+          <div className="mt-4 text-center space-y-2">
+            {!isMagicLink && (
+              <Button
+                variant="link"
+                onClick={() => setIsMagicLink(true)}
+                className="text-sm"
+              >
+                Sign in with magic link instead
+              </Button>
+            )}
+            
+            {isMagicLink && (
+              <Button
+                variant="link"
+                onClick={() => setIsMagicLink(false)}
+                className="text-sm"
+              >
+                Back to password sign in
+              </Button>
+            )}
+            
+            {!isMagicLink && (
+              <Button
+                variant="link"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-sm"
+              >
+                {isSignUp 
+                  ? "Already have an account? Sign in" 
+                  : "New to Coached? Sign up"
+                }
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
