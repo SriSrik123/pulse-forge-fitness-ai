@@ -26,7 +26,7 @@ export function Auth() {
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
-            emailRedirectTo: `add.coached.a0147a6942cb4db7a4a4a13287c24c96://auth-callback`,
+            emailRedirectTo: `${window.location.origin}/`,
           }
         })
 
@@ -52,7 +52,7 @@ export function Auth() {
           email,
           password,
           options: {
-            emailRedirectTo: `add.coached.a0147a6942cb4db7a4a4a13287c24c96://auth-callback`,
+            emailRedirectTo: `${window.location.origin}/`,
             data: {
               full_name: fullName,
               username: username,
