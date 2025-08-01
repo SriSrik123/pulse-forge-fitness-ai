@@ -116,6 +116,7 @@ export type Database = {
           notification_preferences: Json | null
           onboarding_completed: boolean | null
           preferences: Json | null
+          privacy_settings: Json | null
           updated_at: string
           username: string | null
         }
@@ -128,6 +129,7 @@ export type Database = {
           notification_preferences?: Json | null
           onboarding_completed?: boolean | null
           preferences?: Json | null
+          privacy_settings?: Json | null
           updated_at?: string
           username?: string | null
         }
@@ -140,6 +142,7 @@ export type Database = {
           notification_preferences?: Json | null
           onboarding_completed?: boolean | null
           preferences?: Json | null
+          privacy_settings?: Json | null
           updated_at?: string
           username?: string | null
         }
@@ -252,6 +255,47 @@ export type Database = {
           },
           {
             foreignKeyName: "scheduled_workouts_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_workouts: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string | null
+          receiver_id: string
+          sender_id: string
+          status: string | null
+          updated_at: string | null
+          workout_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          receiver_id: string
+          sender_id: string
+          status?: string | null
+          updated_at?: string | null
+          workout_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          receiver_id?: string
+          sender_id?: string
+          status?: string | null
+          updated_at?: string | null
+          workout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_workouts_workout_id_fkey"
             columns: ["workout_id"]
             isOneToOne: false
             referencedRelation: "workouts"
