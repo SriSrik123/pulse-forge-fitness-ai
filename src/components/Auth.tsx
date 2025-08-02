@@ -26,7 +26,7 @@ export function Auth() {
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
-            emailRedirectTo: `${window.location.origin}/`,
+            emailRedirectTo: `app.coached.a0147a6942cb4db7a4a4a13287c24c96://`,
           }
         })
 
@@ -52,7 +52,7 @@ export function Auth() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/`,
+            emailRedirectTo: `app.coached.a0147a6942cb4db7a4a4a13287c24c96://`,
             data: {
               full_name: fullName,
               username: username,
@@ -185,38 +185,16 @@ export function Auth() {
           )}
 
           <div className="mt-4 text-center space-y-2">
-            {!isMagicLink && (
-              <Button
-                variant="link"
-                onClick={() => setIsMagicLink(true)}
-                className="text-sm"
-              >
-                Sign in with magic link instead
-              </Button>
-            )}
-            
-            {isMagicLink && (
-              <Button
-                variant="link"
-                onClick={() => setIsMagicLink(false)}
-                className="text-sm"
-              >
-                Back to password sign in
-              </Button>
-            )}
-            
-            {!isMagicLink && (
-              <Button
-                variant="link"
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-sm"
-              >
-                {isSignUp 
-                  ? "Already have an account? Sign in" 
-                  : "New to Coached? Sign up"
-                }
-              </Button>
-            )}
+            <Button
+              variant="link"
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-sm"
+            >
+              {isSignUp 
+                ? "Already have an account? Sign in" 
+                : "New to Coached? Sign up"
+              }
+            </Button>
           </div>
         </CardContent>
       </Card>
