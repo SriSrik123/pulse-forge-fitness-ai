@@ -29,10 +29,10 @@ export function WorkoutFeedbackForm({ workout, onFeedbackSubmitted }: WorkoutFee
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async () => {
-    if (!user || !feedback.trim() || !rating) {
+    if (!user || !rating) {
       toast({
         title: "Missing Information",
-        description: "Please provide both a rating and feedback",
+        description: "Please select a difficulty rating",
         variant: "destructive"
       })
       return
@@ -47,7 +47,7 @@ export function WorkoutFeedbackForm({ workout, onFeedbackSubmitted }: WorkoutFee
           user_id: user.id,
           workout_id: workout.id,
           sport: workout.sport,
-          feedback_text: `Rating: ${rating} | ${feedback}`,
+          feedback_text: `Rating: ${rating}${feedback.trim() ? ` | ${feedback}` : ''}`,
           feedback_type: 'post_workout'
         })
 
@@ -179,10 +179,18 @@ export function WorkoutFeedbackForm({ workout, onFeedbackSubmitted }: WorkoutFee
           />
         </div>
 
-        <Button 
-          onClick={handleSubmit}
-          disabled={isSubmitting || !feedback.trim() || !rating}
-          className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+        <div className="flex gap-3">
+          <Button 
+            onClick={() => onFeedbackSubmitted()}
+            variant="outline"
+            className="flex-1"
+          >
+            Skip Feedback
+          </Button>
+          <Button 
+            onClick={handleSubmit}
+            disabled={isSubmitting || !rating}
+            className="flex-1 bg-amber-600 hover:bg-amber-700 text-white"
         >
           {isSubmitting ? (
             <>
@@ -195,7 +203,8 @@ export function WorkoutFeedbackForm({ workout, onFeedbackSubmitted }: WorkoutFee
               Submit Feedback to Coach
             </>
           )}
-        </Button>
+          </Button>
+        </div>
 
         <p className="text-xs text-muted-foreground text-center">
           Your coach will analyze this feedback and leave you a personalized message with recovery tips and adjustments for your next workout.
