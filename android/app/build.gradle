@@ -7,7 +7,7 @@ android {
         applicationId "app.coached.a0147a6942cb4db7a4a4a13287c24c96"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
+        versionCode 8
         versionName "1.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
