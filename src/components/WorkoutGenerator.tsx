@@ -70,8 +70,8 @@ export function WorkoutGenerator() {
           sessionType: selectedWorkoutType,
           fitnessLevel: profile.experienceLevel,
           duration: profile.sessionDuration,
-          equipment: equipmentList,
-          sportEquipmentList: equipmentList,
+          equipment: profile.availableEquipment || [],
+          sportEquipmentList: profile.availableEquipment || [],
           goals: `Improve ${selectedSport} performance`,
           previousWorkouts: previousWorkouts || [],
           adaptToProgress: true

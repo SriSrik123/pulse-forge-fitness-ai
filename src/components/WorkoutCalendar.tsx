@@ -373,20 +373,20 @@ export function WorkoutCalendar() {
         .order('created_at', { ascending: false })
         .limit(5)
 
-      const { data, error } = await supabase.functions.invoke('generate-workout', {
-        body: {
-          workoutType: scheduledWorkout.workout_type,
-          sport: scheduledWorkout.sport,
-          sessionType: scheduledWorkout.workout_type,
-          fitnessLevel: sportProfile?.experience_level || 'intermediate',
-          duration: sportProfile?.session_duration || 60,
-          equipment: [],
-          sportEquipmentList: [],
-          goals: `Improve ${scheduledWorkout.sport} performance`,
-          previousWorkouts: previousWorkouts || [],
-          adaptToProgress: true
-        }
-      })
+        const { data, error } = await supabase.functions.invoke('generate-workout', {
+          body: {
+            workoutType: scheduledWorkout.workout_type,
+            sport: scheduledWorkout.sport,
+            sessionType: scheduledWorkout.workout_type,
+            fitnessLevel: sportProfile?.experience_level || 'intermediate',
+            duration: sportProfile?.session_duration || 60,
+            equipment: profile.availableEquipment || [],
+            sportEquipmentList: profile.availableEquipment || [],
+            goals: `Improve ${scheduledWorkout.sport} performance`,
+            previousWorkouts: previousWorkouts || [],
+            adaptToProgress: true
+          }
+        })
 
       console.log('Generation response:', data, error)
 

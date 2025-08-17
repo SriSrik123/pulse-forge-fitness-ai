@@ -146,7 +146,8 @@ export function Settings() {
       competitiveLevel,
       trainingFrequency: trainingFrequency[0],
       sessionDuration: sessionDuration[0],
-      currentGoals
+      currentGoals,
+      availableEquipment: profile.availableEquipment || []
     })
     
     if (success) {

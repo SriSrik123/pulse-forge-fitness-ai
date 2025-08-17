@@ -281,29 +281,29 @@ export function WorkoutViewer({ workoutType, workoutId, generatedWorkoutData }: 
       })
       
       try {
-        // Get previous workouts for context
-        const { data: previousWorkouts } = await supabase
-          .from('workouts')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('sport', scheduledWorkout.sport)
-          .order('created_at', { ascending: false })
-          .limit(5)
+          // Get previous workouts for context
+          const { data: previousWorkouts } = await supabase
+            .from('workouts')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('sport', scheduledWorkout.sport)
+            .order('created_at', { ascending: false })
+            .limit(5)
 
-        const { data, error } = await supabase.functions.invoke('generate-workout', {
-          body: {
-            workoutType: scheduledWorkout.workout_type,
-            sport: scheduledWorkout.sport,
-            sessionType: scheduledWorkout.workout_type,
-            fitnessLevel: profile.experienceLevel || 'intermediate',
-            duration: profile.sessionDuration || 60,
-            equipment: [],
-            sportEquipmentList: [],
-            goals: `Improve ${scheduledWorkout.sport} performance`,
-            previousWorkouts: previousWorkouts || [],
-            adaptToProgress: true
-          }
-        })
+          const { data, error } = await supabase.functions.invoke('generate-workout', {
+            body: {
+              workoutType: scheduledWorkout.workout_type,
+              sport: scheduledWorkout.sport,
+              sessionType: scheduledWorkout.workout_type,
+              fitnessLevel: profile.experienceLevel || 'intermediate',
+              duration: profile.sessionDuration || 60,
+              equipment: profile.availableEquipment || [],
+              sportEquipmentList: profile.availableEquipment || [],
+              goals: `Improve ${scheduledWorkout.sport} performance`,
+              previousWorkouts: previousWorkouts || [],
+              adaptToProgress: true
+            }
+          })
 
         console.log('Workout generation response:', data, error)
 
@@ -507,8 +507,8 @@ export function WorkoutViewer({ workoutType, workoutId, generatedWorkoutData }: 
           sessionType: sessionType,
           fitnessLevel: profile.experienceLevel,
           duration: workoutType === 'strength' ? 45 : profile.sessionDuration,
-          equipment: [],
-          sportEquipmentList: [],
+          equipment: profile.availableEquipment || [],
+          sportEquipmentList: profile.availableEquipment || [],
           goals: `Improve ${sport} performance`,
           previousWorkouts: previousWorkouts || [],
           adaptToProgress: true,

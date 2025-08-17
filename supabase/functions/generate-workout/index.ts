@@ -257,6 +257,11 @@ CYCLING SPECIFIC REQUIREMENTS:
       Available equipment: ${availableEquipment}.
       Goals: ${goals || `improve ${sport} performance`}.${workoutHistory}${preferencesContext}${coachSuggestionsContext}${feedbackContext}${userFeedbackContext}${upcomingEventsContext}${sportSpecificInstructions}
       
+      CRITICAL EQUIPMENT RESTRICTION: You MUST ONLY use equipment from this list: ${availableEquipment}. 
+      Do not suggest any exercises that require equipment not listed above. 
+      If the equipment list is empty or contains only "bodyweight only", generate a bodyweight-only workout.
+      If equipment is limited, adapt exercises to work with what's available or suggest bodyweight alternatives.
+      
       Please provide a structured ${sessionType} plan with:
       1. Warm-up (5-10 minutes)
       2. Main ${sessionType} with exercises/drills, sets, reps, and rest periods
@@ -279,6 +284,11 @@ CYCLING SPECIFIC REQUIREMENTS:
       prompt = `Generate a ${duration}-minute ${workoutType} workout for a ${fitnessLevel} fitness level person. 
       Equipment available: ${equipment || 'bodyweight only'}. 
       Goals: ${goals || 'general fitness'}.${workoutHistory}${preferencesContext}${coachSuggestionsContext}${feedbackContext}${userFeedbackContext}
+      
+      CRITICAL EQUIPMENT RESTRICTION: You MUST ONLY use equipment from this list: ${equipment || 'bodyweight only'}. 
+      Do not suggest any exercises that require equipment not listed above. 
+      If the equipment list is empty or contains only "bodyweight only", generate a bodyweight-only workout.
+      If equipment is limited, adapt exercises to work with what's available or suggest bodyweight alternatives.
       
       Please provide a structured workout plan with:
       1. Warm-up (5 minutes)
