@@ -166,8 +166,8 @@ export function WorkoutCalendar() {
         .from('workouts')
         .select('*')
         .eq('user_id', user.id)
+        .eq('completed', true)
         .order('created_at', { ascending: false })
-        .limit(50)
 
       if (error) throw error
       setCompletedWorkouts(data || [])
@@ -587,10 +587,14 @@ export function WorkoutCalendar() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-1">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="calendar" className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4" />
             Calendar
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Training History
           </TabsTrigger>
         </TabsList>
 
@@ -1232,6 +1236,95 @@ export function WorkoutCalendar() {
         </DialogContent>
       </Dialog>
 
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <Card className="glass border-0">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-5 w-5" />
+                Training History
+              </CardTitle>
+              <p className="text-muted-foreground text-sm">
+                All your completed workouts organized by date
+              </p>
+            </CardHeader>
+            <CardContent>
+              {completedWorkouts.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No completed workouts yet</p>
+                  <p className="text-sm">Start your first workout to build your training history!</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Group workouts by date */}
+                  {Object.entries(
+                    completedWorkouts.reduce((groups: Record<string, CompletedWorkout[]>, workout) => {
+                      const date = format(new Date(workout.created_at), 'yyyy-MM-dd')
+                      if (!groups[date]) groups[date] = []
+                      groups[date].push(workout)
+                      return groups
+                    }, {})
+                  ).map(([date, dayWorkouts]) => (
+                    <div key={date} className="space-y-3">
+                      <div className="flex items-center gap-2 pb-2 border-b border-muted/20">
+                        <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                        <h4 className="font-medium text-sm">
+                          {format(new Date(date), 'EEEE, MMMM d, yyyy')}
+                        </h4>
+                        <Badge variant="outline" className="ml-auto text-xs">
+                          {dayWorkouts.length} workout{dayWorkouts.length > 1 ? 's' : ''}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2 ml-6">
+                        {dayWorkouts.map((workout) => (
+                          <div 
+                            key={workout.id} 
+                            className="p-3 border rounded-lg glass border-0 bg-green-800/10 border-green-700/20 cursor-pointer hover:bg-green-800/20 transition-colors"
+                            onClick={() => {
+                              setSelectedWorkout(workout)
+                              setShowWorkoutDialog(true)
+                            }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-xl">{getSportIcon(workout.sport)}</span>
+                              <div className="flex-1 min-w-0">
+                                <h5 className="font-medium text-sm truncate">{workout.title}</h5>
+                                <p className="text-xs text-muted-foreground">
+                                  {format(new Date(workout.created_at), 'h:mm a')} • 
+                                  {workout.workout_type} • 
+                                  {workout.sport.charAt(0).toUpperCase() + workout.sport.slice(1)}
+                                  {workout.duration && ` • ${workout.duration} min`}
+                                </p>
+                              </div>
+                              {workout.feeling && (
+                                <span className="text-lg">
+                                  {workout.feeling === 'very-bad' ? '😫' : 
+                                   workout.feeling === 'bad' ? '😕' : 
+                                   workout.feeling === 'okay' ? '😐' : 
+                                   workout.feeling === 'good' ? '😊' : 
+                                   workout.feeling === 'great' ? '🤩' : '😐'}
+                                </span>
+                              )}
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            {workout.journal_entry && (
+                              <div className="mt-2 pl-8">
+                                <p className="text-xs text-muted-foreground italic line-clamp-2">
+                                  "{workout.journal_entry}"
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
