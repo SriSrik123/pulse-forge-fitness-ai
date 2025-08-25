@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Activity, Clock, Target, Users, Dumbbell, Zap, Play, Edit3 } from "lucide-react"
+import { Activity, Clock, Target, Users, Dumbbell, Zap, Play, Edit3, Sparkles, RefreshCw } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
 import { useSportProfile } from "@/hooks/useSportProfile"
 import { useToast } from "@/hooks/use-toast"
 import { WorkoutCompletion } from "@/components/WorkoutCompletion"
-import { WorkoutModifier } from "@/components/WorkoutModifier"
+import { WorkoutModificationDialog } from "@/components/WorkoutModificationDialog"
 
 const SPORTS = [
   { value: "swimming", label: "Swimming", icon: "🏊‍♂️" },
@@ -41,7 +41,8 @@ export function WorkoutGenerator() {
   const [selectedWorkoutType, setSelectedWorkoutType] = useState("training")
 	const [equipmentList, setEquipmentList] = useState<string[]>([])
   const [showCompletion, setShowCompletion] = useState(false)
-  const [showModifier, setShowModifier] = useState(false)
+  const [showModification, setShowModification] = useState(false)
+  const [modificationMode, setModificationMode] = useState<'ask-ai' | 'regenerate'>('ask-ai')
 
   useEffect(() => {
     if (profile.primarySport) {
@@ -124,7 +125,7 @@ export function WorkoutGenerator() {
   const handleWorkoutComplete = () => {
     setGeneratedWorkout(null)
     setShowCompletion(false)
-    setShowModifier(false)
+    setShowModification(false)
     toast({
       title: "Success!",
       description: "Workout saved to your history. Great job!",
@@ -133,7 +134,7 @@ export function WorkoutGenerator() {
 
   const handleWorkoutModified = (modifiedWorkout: any) => {
     setGeneratedWorkout(modifiedWorkout)
-    setShowModifier(false)
+    setShowModification(false)
   }
 
   if (generatedWorkout) {
@@ -141,8 +142,16 @@ export function WorkoutGenerator() {
       return <WorkoutCompletion workout={generatedWorkout} onComplete={handleWorkoutComplete} />
     }
 
-    if (showModifier) {
-      return <WorkoutModifier originalWorkout={generatedWorkout} onModified={handleWorkoutModified} />
+    if (showModification) {
+      return (
+        <WorkoutModificationDialog
+          isOpen={showModification}
+          onClose={() => setShowModification(false)}
+          onWorkoutGenerated={handleWorkoutModified}
+          currentWorkout={generatedWorkout}
+          mode={modificationMode}
+        />
+      )
     }
 
     return (
@@ -230,12 +239,25 @@ export function WorkoutGenerator() {
           </Button>
           
           <Button 
-            onClick={() => setShowModifier(true)}
+            onClick={() => {
+              setModificationMode('ask-ai')
+              setShowModification(true)
+            }}
             variant="outline"
-            className="flex-1"
+            className="px-3"
           >
-            <Edit3 className="mr-2 h-4 w-4" />
-            Modify Workout
+            <Sparkles className="h-4 w-4" />
+          </Button>
+
+          <Button 
+            onClick={() => {
+              setModificationMode('regenerate')
+              setShowModification(true)
+            }}
+            variant="outline"
+            className="px-3"
+          >
+            <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
 
