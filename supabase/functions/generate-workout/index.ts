@@ -61,29 +61,63 @@ serve(async (req) => {
 
     let prompt = "";
     
-    // Add previous workout context if available
+    // Add previous workout context and uniqueness requirements
     let workoutHistory = "";
-    if (previousWorkouts && previousWorkouts.length > 0 && adaptToProgress) {
-      const recentWorkouts = previousWorkouts.slice(0, 3).map(w => ({
+    let uniquenessRequirements = "";
+    
+    if (previousWorkouts && previousWorkouts.length > 0) {
+      const recentWorkouts = previousWorkouts.slice(0, 5).map(w => ({
         title: w.title,
         date: w.created_at,
         completed: w.completed,
         sport: w.sport,
+        exercises: w.exercises,
         journal_entry: w.journal_entry,
-        feeling: w.feeling
+        feeling: w.feeling,
+        workout_type: w.workout_type
       }));
+      
+      // Extract exercise names from recent workouts for uniqueness
+      const recentExercises = [];
+      const recentWorkoutPatterns = [];
+      
+      recentWorkouts.forEach(w => {
+        if (w.exercises && w.exercises.exercises) {
+          const exerciseNames = w.exercises.exercises.map(ex => ex.name);
+          recentExercises.push(...exerciseNames);
+          recentWorkoutPatterns.push({
+            title: w.title,
+            type: w.workout_type,
+            exerciseCount: exerciseNames.length,
+            mainExercises: exerciseNames.slice(0, 3)
+          });
+        }
+      });
       
       workoutHistory = `
       
 RECENT WORKOUT HISTORY (consider for progression and variety):
 ${recentWorkouts.map(w => `- ${w.title} (${w.completed ? 'completed' : 'not completed'}) - ${new Date(w.date).toLocaleDateString()}${w.journal_entry ? ` | Notes: ${w.journal_entry}` : ''}${w.feeling ? ` | Feeling: ${w.feeling}` : ''}`).join('\n')}
 
-Please ensure this workout:
-1. Progresses appropriately from recent sessions
-2. Varies exercises to prevent monotony
-3. Adjusts intensity based on completion patterns
-4. Builds upon previous training adaptations
-5. Takes into account any notes or feelings from previous workouts
+RECENT WORKOUT PATTERNS:
+${recentWorkoutPatterns.map(p => `- ${p.title}: ${p.mainExercises.join(', ')}`).join('\n')}
+      `;
+      
+      uniquenessRequirements = `
+
+CRITICAL UNIQUENESS REQUIREMENTS:
+1. DO NOT repeat these recent exercises: ${[...new Set(recentExercises)].join(', ')}
+2. Create a completely different exercise selection and workout structure
+3. If this is the same sport/type as recent workouts, focus on different muscle groups or movement patterns
+4. Vary the workout format - if recent workouts were circuit-based, make this traditional sets/reps, or vice versa
+5. Use different rep ranges and intensity patterns than recent sessions
+6. For swimming: vary strokes, distances, and interval patterns significantly
+7. For running: vary workout type (intervals vs tempo vs long run vs fartlek)
+8. For strength: vary equipment, muscle group focus, and rep schemes
+9. Change the session structure - different warm-up, main set organization, and cool-down
+10. Ensure this workout would feel fresh and different from the last ${recentWorkouts.length} sessions
+
+WORKOUT VARIETY MANDATE: The user is experiencing repetitive workouts. This session MUST be distinctly different in exercises, structure, and focus compared to recent sessions.
       `;
     }
 
@@ -255,7 +289,7 @@ CYCLING SPECIFIC REQUIREMENTS:
       
       prompt = `Generate a ${duration}-minute ${sport} ${sessionType} session for a ${fitnessLevel} level athlete.
       Available equipment: ${availableEquipment}.
-      Goals: ${goals || `improve ${sport} performance`}.${workoutHistory}${preferencesContext}${coachSuggestionsContext}${feedbackContext}${userFeedbackContext}${upcomingEventsContext}${sportSpecificInstructions}
+      Goals: ${goals || `improve ${sport} performance`}.${workoutHistory}${uniquenessRequirements}${preferencesContext}${coachSuggestionsContext}${feedbackContext}${userFeedbackContext}${upcomingEventsContext}${sportSpecificInstructions}
       
       CRITICAL EQUIPMENT RESTRICTION: You MUST ONLY use equipment from this list: ${availableEquipment}. 
       Do not suggest any exercises that require equipment not listed above. 
@@ -283,7 +317,7 @@ CYCLING SPECIFIC REQUIREMENTS:
     } else {
       prompt = `Generate a ${duration}-minute ${workoutType} workout for a ${fitnessLevel} fitness level person. 
       Equipment available: ${equipment || 'bodyweight only'}. 
-      Goals: ${goals || 'general fitness'}.${workoutHistory}${preferencesContext}${coachSuggestionsContext}${feedbackContext}${userFeedbackContext}
+      Goals: ${goals || 'general fitness'}.${workoutHistory}${uniquenessRequirements}${preferencesContext}${coachSuggestionsContext}${feedbackContext}${userFeedbackContext}
       
       CRITICAL EQUIPMENT RESTRICTION: You MUST ONLY use equipment from this list: ${equipment || 'bodyweight only'}. 
       Do not suggest any exercises that require equipment not listed above. 

@@ -55,14 +55,33 @@ export function WorkoutGenerator() {
 
     setGenerating(true)
     try {
-      // Get previous workouts for context
-      const { data: previousWorkouts } = await supabase
+      // Get more extensive recent workout history for uniqueness
+      const { data: recentWorkouts } = await supabase
         .from('workouts')
         .select('*')
         .eq('user_id', user.id)
-        .eq('sport', selectedSport)
         .order('created_at', { ascending: false })
-        .limit(5)
+        .limit(10) // Increased limit for better uniqueness checking
+      
+      // Get recent workouts of the same sport if sport is selected
+      let sportSpecificWorkouts = [];
+      if (selectedSport && selectedSport !== 'general') {
+        const { data: sportWorkouts } = await supabase
+          .from('workouts')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('sport', selectedSport)
+          .order('created_at', { ascending: false })
+          .limit(8);
+        sportSpecificWorkouts = sportWorkouts || [];
+      }
+      
+      // Combine and deduplicate recent workouts
+      const allRecentWorkouts = [...(recentWorkouts || []), ...sportSpecificWorkouts]
+        .filter((workout, index, self) => 
+          index === self.findIndex(w => w.id === workout.id)
+        )
+        .slice(0, 12) // Keep more history for better uniqueness
 
       const { data } = await supabase.functions.invoke('generate-workout', {
         body: {
@@ -72,10 +91,17 @@ export function WorkoutGenerator() {
           fitnessLevel: profile.experienceLevel,
           duration: profile.sessionDuration,
           equipment: profile.availableEquipment || [],
-          sportEquipmentList: profile.availableEquipment || [],
+          sportEquipmentList: equipmentList.length > 0 ? equipmentList : (profile.availableEquipment || []),
           goals: `Improve ${selectedSport} performance`,
-          previousWorkouts: previousWorkouts || [],
-          adaptToProgress: true
+          previousWorkouts: allRecentWorkouts,
+          adaptToProgress: true, // Always consider progress and uniqueness
+          userPreferences: `
+            Experience: ${profile.experienceLevel}
+            Competitive Level: ${profile.competitiveLevel}
+            Current Goals: ${profile.currentGoals || 'Not specified'}
+            Preferred Duration: ${profile.sessionDuration} minutes
+            Training Frequency: ${profile.trainingFrequency} times per week
+          `
         }
       })
 

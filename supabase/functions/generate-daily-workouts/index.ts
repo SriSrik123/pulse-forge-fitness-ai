@@ -133,26 +133,59 @@ serve(async (req) => {
 
 async function generateWorkout({ geminiApiKey, sport, sessionType, fitnessLevel, duration, goals, previousWorkouts }) {
   let workoutHistory = "";
+  let uniquenessRequirements = "";
+  
   if (previousWorkouts && previousWorkouts.length > 0) {
-    const recentWorkouts = previousWorkouts.slice(0, 3).map(w => ({
+    const recentWorkouts = previousWorkouts.slice(0, 5).map(w => ({
       title: w.title,
       date: w.created_at,
       completed: w.completed,
       sport: w.sport,
+      exercises: w.exercises,
       workout_type: w.workout_type
     }));
+    
+    // Extract exercise names from recent workouts for uniqueness
+    const recentExercises = [];
+    const recentWorkoutPatterns = [];
+    
+    recentWorkouts.forEach(w => {
+      if (w.exercises && w.exercises.exercises) {
+        const exerciseNames = w.exercises.exercises.map(ex => ex.name);
+        recentExercises.push(...exerciseNames);
+        recentWorkoutPatterns.push({
+          title: w.title,
+          type: w.workout_type,
+          mainExercises: exerciseNames.slice(0, 3)
+        });
+      }
+    });
     
     workoutHistory = `
     
 RECENT WORKOUT HISTORY:
 ${recentWorkouts.map(w => `- ${w.title} (${w.completed ? 'completed' : 'not completed'}) - ${new Date(w.date).toLocaleDateString()}`).join('\n')}
 
-Yesterday you did a ${recentWorkouts[0]?.workout_type || 'general'} workout focused on ${recentWorkouts[0]?.sport || 'fitness'}, so today you should do ${sessionType} and focus on progressive overload and variety.
+RECENT WORKOUT PATTERNS:
+${recentWorkoutPatterns.map(p => `- ${p.title}: ${p.mainExercises.join(', ')}`).join('\n')}
+    `;
+    
+    uniquenessRequirements = `
+
+CRITICAL UNIQUENESS REQUIREMENTS:
+1. DO NOT repeat these recent exercises: ${[...new Set(recentExercises)].join(', ')}
+2. Create a completely different exercise selection and workout structure
+3. Vary the workout format and organization compared to recent sessions
+4. Use different rep ranges, sets, and rest patterns than recent workouts
+5. Focus on different muscle groups or skill aspects than recent sessions
+6. This workout MUST feel fresh and different from the last ${recentWorkouts.length} sessions
+
+WORKOUT VARIETY MANDATE: Ensure this session is distinctly unique compared to recent workouts.
     `;
   }
 
   const prompt = `Generate a ${duration}-minute ${sport} ${sessionType} session for a ${fitnessLevel} level athlete.
-  Goals: ${goals}.${workoutHistory}
+  Goals: ${goals}.${workoutHistory}${uniquenessRequirements}
   
   Please provide a structured ${sessionType} plan with:
   1. Warm-up (5-10 minutes)

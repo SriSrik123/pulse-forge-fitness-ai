@@ -66,14 +66,50 @@ serve(async (req) => {
           continue;
         }
 
-        // Get previous workouts for context
+        // Get previous workouts for context and uniqueness
         const { data: previousWorkouts } = await supabase
           .from('workouts')
           .select('*')
           .eq('user_id', scheduledWorkout.user_id)
           .eq('sport', scheduledWorkout.sport)
           .order('created_at', { ascending: false })
+          .limit(8);
+
+        // Also get recent workouts from the same workout type
+        const { data: recentSameType } = await supabase
+          .from('workouts')
+          .select('*')
+          .eq('user_id', scheduledWorkout.user_id)
+          .eq('workout_type', scheduledWorkout.workout_type)
+          .order('created_at', { ascending: false })
           .limit(5);
+
+        // Combine and deduplicate
+        const allRecentWorkouts = [...(previousWorkouts || []), ...(recentSameType || [])]
+          .filter((workout, index, self) => 
+            index === self.findIndex(w => w.id === workout.id)
+          )
+          .slice(0, 8);
+
+        // Extract exercise patterns from recent workouts for uniqueness
+        const recentExercises = [];
+        const recentPatterns = [];
+        
+        if (allRecentWorkouts && allRecentWorkouts.length > 0) {
+          allRecentWorkouts.forEach(w => {
+            if (w.exercises && w.exercises.exercises) {
+              const exerciseNames = w.exercises.exercises.map(ex => ex.name);
+              recentExercises.push(...exerciseNames);
+              recentPatterns.push({
+                title: w.title,
+                exercises: exerciseNames.slice(0, 3),
+                date: new Date(w.created_at).toLocaleDateString()
+              });
+            }
+          });
+        }
+
+        const uniqueRecentExercises = [...new Set(recentExercises)];
 
         // Generate workout using Gemini
         const workoutPrompt = `Generate a detailed ${scheduledWorkout.workout_type} workout for ${scheduledWorkout.sport}.
@@ -85,7 +121,19 @@ User Profile:
 - Competitive Level: ${profile.competitive_level}
 - Goals: ${profile.current_goals || 'General fitness improvement'}
 
-Previous Workouts Context: ${previousWorkouts?.length ? JSON.stringify(previousWorkouts.slice(0, 2)) : 'No previous workouts'}
+RECENT WORKOUT PATTERNS (MUST AVOID REPETITION):
+${recentPatterns.map(p => `- ${p.title} (${p.date}): ${p.exercises.join(', ')}`).join('\n')}
+
+CRITICAL UNIQUENESS REQUIREMENTS:
+1. DO NOT use these exercises from recent workouts: ${uniqueRecentExercises.join(', ')}
+2. Create completely different exercises and workout structure
+3. Vary the training focus and muscle group emphasis
+4. Use different rep ranges, sets, and rest patterns
+5. Change the workout format and organization
+6. For ${scheduledWorkout.sport}: focus on different aspects/skills than recent sessions
+7. This workout MUST feel fresh and distinct from recent sessions
+
+MANDATORY: This session must be completely unique compared to the last ${allRecentWorkouts.length} workouts.
 
 Please return a JSON object with this exact structure:
 {
